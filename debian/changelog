@@ -1,8 +1,49 @@
-wolfssl (5.7.2-0.1deepin1) unstable; urgency=medium
+wolfssl (5.8.2-1.2) unstable; urgency=medium
 
-  * Revert changes for 64-bit time_t transition.
+  * Non-maintainer upload.
+  * Mark wolfSSL_Atomic_Int_* symbols as optional to build on archs with no
+    atomic operations.
 
- -- Tianyu Chen <sweetyfish@deepin.org>  Wed, 11 Jun 2025 10:37:07 +0800
+ -- Bastian Germann <bage@debian.org>  Sat, 30 Aug 2025 12:23:05 +0200
+
+wolfssl (5.8.2-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Move to unstable.
+
+ -- Bastian Germann <bage@debian.org>  Sat, 30 Aug 2025 08:58:18 +0200
+
+wolfssl (5.8.2-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Update debian/copyright to GPL3+.
+  * Disable old TLS.
+  * Disable CRL Monitor.
+
+ -- Jacob Barthelmeh <sirkilamole@msn.com>  Tue, 12 Aug 2025 15:13:06 -0600
+
+wolfssl (5.7.2-0.4) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Upload to unstable.
+
+ -- Bastian Germann <bage@debian.org>  Sun, 10 Aug 2025 13:00:45 +0200
+
+wolfssl (5.7.2-0.3) experimental; urgency=medium
+
+  * Non-maintainer upload.
+  * Drop kfreebsd patch.
+  * Fix CVE-2025-7394. (Closes: #1109549)
+  * Drop misleading license reference in the package description.
+
+ -- Bastian Germann <bage@debian.org>  Mon, 04 Aug 2025 17:57:05 +0200
+
+wolfssl (5.7.2-0.2) experimental; urgency=medium
+
+  * Non-maintainer upload.
+  * Enable JNI and memcached. (Closes: #1109656)
+
+ -- Bastian Germann <bage@debian.org>  Mon, 04 Aug 2025 12:46:37 +0200
 
 wolfssl (5.7.2-0.1) unstable; urgency=medium
 

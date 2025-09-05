@@ -15,18 +15,17 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 %:
 	dh $@
-#	dh $@ --with dkms
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		--enable-distro \
-		--enable-oldtls \
+		--enable-jni \
+		--enable-memcached \
 		--enable-pkcs11 \
+		--disable-asm \
+		--disable-crl-monitor \
 		--disable-examples \
 		--disable-silent-rules
 
 override_dh_installexamples:
 	dh_installexamples --exclude .vcproj --exclude .vcxproj --exclude .sln
-
-#override_dh_dkms:
-#	dh_dkms -V $(VERSION)
