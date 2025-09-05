@@ -1,15 +1,63 @@
-Source: template-repository
-Section: unknown
+Source: wolfssl
 Priority: optional
-Maintainer: Tsic404 <liuheng@deepin.org>
-Build-Depends: debhelper (>= 11)
-Standards-Version: 4.1.3
-Homepage: https://github.com/deepin-community/template-repository
-#Vcs-Browser: https://salsa.debian.org/debian/deepin-community-template-repository
-#Vcs-Git: https://salsa.debian.org/debian/deepin-community-template-repository.git
+Maintainer: Jacob Barthelmeh <sirkilamole@msn.com>
+Build-Depends: dpkg-dev (>= 1.22.5),
+ debhelper-compat (= 13),
+ libpcap0.8-dev,
+ openssl
+Standards-Version: 4.6.1
+Rules-Requires-Root: no
+Section: libs
+Homepage: https://www.wolfssl.com/products/wolfssl/
 
-Package: template-repository
+Package: libwolfssl42
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: wolfSSL encryption library
+ wolfSSL is a small, portable, embedded SSL/TLS programming library
+ targeted for use by embedded systems developers. It was formerly
+ known as CyaSSL.
+ .
+ It is an open source, dual licensed implementation of SSL/TLS
+ (SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3, DTLS 1.0 and 1.2) written in the C
+ language.  wolfSSL includes both a client and server implementation,
+ progressive cipher support, key and certificate generation, OCSP
+ and CRL, access to the underlying cryptography modules, and more.
+ .
+ wolfSSL also includes an OpenSSL compatibility interface with the
+ most commonly used OpenSSL functions.
+ .
+ wolfSSL is solely provided as an alternative to OpenSSL for
+ packages whose licenses are incompatible to Apache 2.0. For details,
+ please see Bug#1023697.
+
+Package: libwolfssl-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: no
+Depends:
+ libwolfssl42 (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for the wolfSSL encryption library
+ wolfSSL is a small, portable, embedded SSL/TLS programming library
+ targeted for use by embedded systems developers. It was formerly
+ known as CyaSSL.
+ .
+ It is an open source, dual licensed implementation of SSL/TLS
+ (SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3, DTLS 1.0, 1.2 and 1.3) written in the C
+ language.  wolfSSL includes both a client and server implementation,
+ progressive cipher support, key and certificate generation, OCSP
+ and CRL, access to the underlying cryptography modules, and more.
+ .
+ wolfSSL also includes an OpenSSL compatibility interface with the
+ most commonly used OpenSSL functions.
+ .
+ This package contains the development files.
+ .
+ wolfSSL is solely provided as an alternative to OpenSSL for
+ packages whose licenses are incompatible to Apache 2.0. For details,
+ please see Bug#1023697.

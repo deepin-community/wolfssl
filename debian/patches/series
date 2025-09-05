@@ -1,0 +1,6 @@
+multi-arch.patch
+dfsg.patch
+fix-hurd-i386-flags.patch
+disable-crl-monitor.patch
+disable-jobserver.patch
+handle-debian-files.diff

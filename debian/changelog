@@ -1,5 +1,563 @@
-template-repository (1.0-1) unstable; urgency=medium
+wolfssl (5.7.2-0.1deepin1) unstable; urgency=medium
 
-  * Initial release
+  * Revert changes for 64-bit time_t transition.
 
- -- Tsic404 <liuheng@deepin.org>  Sat, 28 Jan 2023 13:46:49 +0800
+ -- Tianyu Chen <sweetyfish@deepin.org>  Wed, 11 Jun 2025 10:37:07 +0800
+
+wolfssl (5.7.2-0.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream release fixing CVE-2024-1544, CVE-2024-5288, CVE-2024-5814,
+    and CVE-2024-5991. (Closes: #1081788, #1081789, #1081790, #1081791)
+
+ -- Bastian Germann <bage@debian.org>  Mon, 23 Sep 2024 11:52:19 +0200
+
+wolfssl (5.7.0-0.3) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Remove accidentally inserted symbol characters.
+
+ -- Bastian Germann <bage@debian.org>  Fri, 03 May 2024 09:13:13 +0200
+
+wolfssl (5.7.0-0.2) experimental; urgency=medium
+
+  * Non-maintainer upload.
+  * Mask cpuid symbols for amd64 only.
+
+ -- Bastian Germann <bage@debian.org>  Thu, 02 May 2024 22:24:20 +0000
+
+wolfssl (5.7.0-0.1) experimental; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream release.
+
+ -- Bastian Germann <bage@debian.org>  Mon, 08 Apr 2024 18:05:09 +0200
+
+wolfssl (5.6.6-1.3) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Rename libraries for 64-bit time_t transition.  Closes: #1063072
+
+ -- Steve Langasek <vorlon@debian.org>  Thu, 29 Feb 2024 02:37:17 +0000
+
+wolfssl (5.6.6-1.2) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Reupload to unstable.
+
+ -- Bastian Germann <bage@debian.org>  Wed, 27 Dec 2023 23:17:32 +0100
+
+wolfssl (5.6.6-1.1) experimental; urgency=medium
+
+  * Non-maintainer upload.
+  * Enable old TLS because sip-tester needs 1.1.
+
+ -- Bastian Germann <bage@debian.org>  Sat, 23 Dec 2023 00:40:35 +0000
+
+wolfssl (5.6.6-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Fix for CVE-2023-6937.
+  * Fix for CVE-2023-6936.
+  * Fix for CVE-2023-6935.
+  * Drop Felix from Uploaders. (Closes: #1057340)
+
+ -- Jacob Barthelmeh <sirkilamole@msn.com>  Thu, 21 Dec 2023 10:50:41 -0700
+
+wolfssl (5.6.4-2) unstable; urgency=medium
+
+  * Move to unstable.
+
+ -- Jacob Barthelmeh <sirkilamole@msn.com>  Sat, 11 Nov 2023 00:03:50 +0100
+
+wolfssl (5.6.4-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Drop upstream patch.
+
+ -- Jacob Barthelmeh <sirkilamole@msn.com>  Thu, 02 Nov 2023 15:30:14 -0600
+
+wolfssl (5.5.4-2.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Fix CVE-2023-3724. (see #1041699)
+
+ -- Bastian Germann <bage@debian.org>  Mon, 23 Oct 2023 17:46:16 +0000
+
+wolfssl (5.5.4-2) unstable; urgency=medium
+
+  * Clarify in README.Debian and in the package descriptions that wolfssl is
+    only for packages that cannot use openssl. (Closes: #1023697)
+  * Drop d/salsa-ci.yml. (Closes: #1030634) 
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Mon, 06 Feb 2023 06:41:53 -0800
+
+wolfssl (5.5.4-1) unstable; urgency=medium
+
+  [Jacob Barthelmeh]
+  * New upstream release.
+  * Updated symbols file.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 27 Dec 2022 14:10:00 -0700
+
+wolfssl (5.5.3-3) unstable; urgency=medium
+
+  * Mark all three cpuid_* symbols as "optional" per dpkg-gensymbols(1).
+    Thanks to Bastian Germann for the suggestion. (Closes: #1023835)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Fri, 11 Nov 2022 06:40:00 -0800
+
+wolfssl (5.5.3-2) unstable; urgency=medium
+
+  * Source-only upload (for propagation to testing).
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Thu, 10 Nov 2022 11:25:10 -0800
+
+wolfssl (5.5.3-1) unstable; urgency=medium
+
+  * New upstream release. (Closes: #1014867, #1016981, #1021021, #1023574)
+  * Fixes CVE-2022-34293, CVE-2022-38152, CVE-2022-38153, CVE-2022-39173,
+    CVE-2022-42961
+  * Bump SONAME version to 35.
+  * Update symbols file.
+  * Drop patch turn-off-fastmath-for-amd64.patch; now using sp-math
+    everywhere.
+  * Ship docs/QUIC.md with the development files.
+  * Bump Standards-Version to 4.6.1.
+  * Drop Vcs-Git and Vcs-Browser; upstream releases often do not share a
+    common history, especially for security releases fixing vulnerabilities.
+  * Fix watch file to look at tags instead of releases.
+  * Add Jacob Barthelmeh as Maintainer and move self into Uploaders.
+
+ -- Jacob Barthelmeh <sirkilamole@msn.com>  Wed, 9 Nov 2022 16:10:39 -0800
+
+wolfssl (5.2.0-2) unstable; urgency=medium
+
+  * Source-only upload for migration to testing.
+  * Add Build-Depends-Package back to symbols file.
+  * Fix Debian copyright.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 22 Feb 2022 15:32:39 -0800
+
+wolfssl (5.2.0-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump SONAME version to 32.
+  * Update symbols file.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 22 Feb 2022 00:10:47 -0800
+
+wolfssl (5.1.1-1) unstable; urgency=medium
+
+  * New upstream release. (Closes: #1004181)
+  * Fixes CVE-2022-23408: "non-random IV values in certain situations"
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Thu, 10 Feb 2022 10:35:24 -0800
+
+wolfssl (5.0.0-1) unstable; urgency=medium
+
+  * New upstream release. (Closes: #995820)
+  * Fixes CVE-2021-24116. (Closes: #991663)
+  * Fixes CVE-2021-38597. (Closes: #992174)
+  * Fixes CVE-2021-37155. (Closes: #991443)
+  * Adjust packaging to new soname version 30.
+  * Update shared object symbols.
+  * Drop explicit build options from d/rules for those now enabled by default
+    in configure.ac.
+  * Drop comments that some files were excluded; now we track upstream in full.
+  * Adjust d/copyright to new file paths; update copyright years.
+  * Drop cherry-picked commit and patches accepted upstream; rebase remaining
+    patches.
+  * Update d/watch for Github's new download URLs.
+  * Provide an upstream metadata file.
+  * Mark one patch as unsuitable for inclusion upstream.
+  * Bump Standards-Version to 4.6.0.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sun, 07 Nov 2021 12:12:53 -0800
+
+wolfssl (4.6.0-3) unstable; urgency=medium
+
+  * Cherry-pick merged PR#3676 "TLS 1.3: ensure key for signature in
+    CertificateVerify"; fixes CVE-2021-3336.
+  * Do not store build path in library; fixes reproducible builds.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 10 Feb 2021 10:46:57 -0800
+
+wolfssl (4.6.0-2) unstable; urgency=medium
+
+  * Set Multi-Arch: no for libwolfssl-dev; conflicting headers should
+    be moved to architecture dependent locations after the bullseye
+    release.
+  * Bump Standards-Version to 4.5.1.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 03 Feb 2021 11:09:21 -0800
+
+wolfssl (4.6.0-1) unstable; urgency=medium
+
+  * New upstream release; fixes CVE-2020-36177. (Closes: #978676, #979534)
+  * Update symbols file.
+  * Drop patches previously cherry-picked from unreleased Git:
+      - b90acc91d0cd276befe7f08f87ba2dc5ee7122ff.patch
+  * Refresh remaining Debian patches.
+  * Disable DFSG repackaging in d/watch; source is now DFSG-compliant.
+  * Remove Files-Excluded field from d/copyright; covered 653 files.
+  * Add two files to d/copyright that are now shipped in the sources.
+  * Update copyright years in d/copyright.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 27 Jan 2021 15:39:34 -0800
+
+wolfssl (4.5.0+dfsg-4) unstable; urgency=medium
+
+  * Upload DFSG-clean source to Salsa; common history with upstream.
+  * Add Salsa repository to Vcs-Git and Vcs-Browser.
+  * Review source for DFSG; future uploads may no longer need to be modified.
+  * Enable standard CI pipeline on Salsa.
+  * Add *~ to debian/.gitignore to exclude editor backup files.
+  * Upload includes debian/.gitignore with !* (from past commit ba8310ee). File
+    was added before 4.5.0+dfsg-1 in git but was not actually present in source
+    uploads until now. Patch management was difficult in git due to *.patch in
+    upstream's .gitignore.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Thu, 01 Oct 2020 06:21:02 -0700
+
+wolfssl (4.5.0+dfsg-3) unstable; urgency=medium
+
+  * Enable Base64 encoding on all architectures; default is amd64 only.
+    Thanks to Bastian Germann for the pointer. (See: #970923)
+  * Exclude definition of HAVE___UINT128 from wolfssl/config.h; already in
+    regular config.h and AM_CFLAGS. Thanks to Bastian Germann for the pointer.
+    (Closes: #970923)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sun, 27 Sep 2020 08:16:22 -0700
+
+wolfssl (4.5.0+dfsg-2) unstable; urgency=medium
+
+  * Cherry-pick patch to provide ByteReverseWords on big-endian architecture;
+    suggested by upstream as fix for build failure on s390x.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 15 Sep 2020 16:55:31 -0700
+
+wolfssl (4.5.0+dfsg-1) unstable; urgency=medium
+
+  * New upstream release; fixes CVE-2020-12457, CVE-2020-15309, CVE-2020-24585,
+    CVE-2020-24613. (Closes: #969663)
+  * Enable PKCS#11 support in d/rules. (Closes: #969370).
+  * Remove patches submitted upstream and accepted:
+      - rename-hash-type.patch
+      - rename-validate-date-function.patch
+  * Remove patches previously cherry-picked from the unreleased Git:
+      - b07dfa425dc9416c4188830e79fd26.patch
+      - c8b87eab5f2fe2ae2c3527bbfb33db6ed8b55999.patch
+  * Refresh remaining Debian patches.
+  * Marked the following patches as not needing forwarding to upstream:
+      - dfsg.patch
+      - disable-crl-monitor.patch
+      - disable-jobserver.patch
+  * Marked utf8.patch as forwarded; included URL for Github pull request.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 15 Sep 2020 12:49:03 -0700
+
+wolfssl (4.4.0+dfsg-7) unstable; urgency=medium
+
+  * Disable jobserver in Automake (AX_AM_JOBSERVER) and remove -j flag from
+    make test command. Maybe this fixes the CI problem.
+  * Fix typo in README.Debian.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Fri, 03 Jul 2020 18:15:12 -0700
+
+wolfssl (4.4.0+dfsg-6) unstable; urgency=medium
+
+  * Provide basic instructions on how to use the OpenSSL compatibility layer
+    in README.Debian. (Closes: #964215)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Fri, 03 Jul 2020 14:41:33 -0700
+
+wolfssl (4.4.0+dfsg-5) unstable; urgency=medium
+
+  * Explicitly disable jobserver mode in make during build with the expanded
+    test command 'make -j1 && make -j1 test' attempting eliminate this error:
+    "make[2]: warning: -j33 forced in submake: resetting jobserver mode."
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 01 Jul 2020 11:53:06 -0700
+
+wolfssl (4.4.0+dfsg-4) unstable; urgency=medium
+
+  * Make static library reproducible. (Closes: #960590)
+  * Import upstream patch for spelling of compatibility flags (Closes: #962149)
+  * Disable jobserver mode in autopkgtest by specifying -j1 to fix "FAIL stderr:
+    make[2]: warning: -j5 forced in submake: resetting jobserver mode."
+  * Refresh patches
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 01 Jul 2020 05:56:56 -0700
+
+wolfssl (4.4.0+dfsg-3) unstable; urgency=medium
+
+  * Added an autopkgtest; setup is probably too generous. (Closes: #952676)
+  * Convert tfm.h to UTF-8 encoding.
+  * Patched to rename Hash type and ValidateDate for building PostgreSQL.
+    Also submitted to upstream, who agreed in principle to a renaming.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 30 Jun 2020 10:51:43 -0700
+
+wolfssl (4.4.0+dfsg-2~bpo10+1) buster-backports; urgency=medium
+
+  * Rebuild for buster-backports.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Mon, 18 May 2020 14:12:21 -0700
+
+wolfssl (4.4.0+dfsg-2) unstable; urgency=medium
+
+  * Cherry-pick upstream fix for C++ (Closes: #960394)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 12 May 2020 06:31:00 -0700
+
+wolfssl (4.4.0+dfsg-1) unstable; urgency=medium
+
+  * New upstream version; fixes CVE-2020-11713 (Closes: #958667, #960190)
+  * Add new symbols; major number stayed the same
+  * Add John Safranek (374E2847BC8AF19E) as authorized upstream signatory
+  * Refreshed Debian patches so they apply without fuzz
+  * Bump Standards-Version to 4.5.0
+  * Bump debhelper compat level to 13.
+  * Ship examples prepared by make instead of raw files from source
+  * Ship README.txt and taoCert.txt in docs for shared library
+  * Add usr/lib/*/*.la and usr/bin/wolfssl-config to d/not-installed
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Mon, 11 May 2020 12:20:59 -0700
+
+wolfssl (4.3.0+dfsg-2~bpo10+1) buster-backports; urgency=medium
+
+  * Rebuild for buster-backports.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Thu, 09 Jan 2020 21:44:59 -0800
+
+wolfssl (4.3.0+dfsg-2) unstable; urgency=medium
+
+  * Source-only upload for propagation to testing.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Fri, 27 Dec 2019 16:05:50 -0800
+
+wolfssl (4.3.0+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bumped shared object major version to 24
+  * Removed from patches commit previously cherry-picked
+  * Refreshed patches
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 24 Dec 2019 18:11:16 -0800
+
+wolfssl (4.2.0+dfsg-3) unstable; urgency=medium
+
+  * Cherry-pick commit 52f28bd5 from upstream. Fixes CVE-2019-18840.
+    "one-byte heap-based buffer overflow inside the DecodedCert structure
+    in GetName in wolfcrypt/src/asn.c"
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sat, 09 Nov 2019 19:27:34 -0800
+
+wolfssl (4.2.0+dfsg-2) unstable; urgency=medium
+
+  * Source-only upload after trip through NEW, for migration to testing.
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Mon, 04 Nov 2019 05:09:38 -0800
+
+wolfssl (4.2.0+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bumped library major number to 23
+  * Updated shared object symbols
+  * Bumped Standards-Version to 4.4.1
+  * Removed license file COPYING from d/copyright
+  * Added Rules-Requires-Root: no to d/control
+  * Removed cherry-picked patch from ./debian
+  * Refreshed remaining patches
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 29 Oct 2019 17:19:07 -0700
+
+wolfssl (4.1.0+dfsg-2) unstable; urgency=medium
+
+  * Cherry-pick commit c6e4aebc from upstream. Fixes CVE-2019-15651.
+    "One-byte heap-based buffer over-read in DecodeCertExtensions".
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 18 Sep 2019 17:28:15 -0700
+
+wolfssl (4.1.0+dfsg-1) unstable; urgency=medium
+
+  * In 'telegram-cli', wolfSSL may have found its first user in Debian
+  * Thank you to Liu Ying-Chun <paulliu@debian.org> for helping with packaging
+  * New upstream release
+    - Fixes CVE-2019-11873
+      "Buffer Overflow in DoPreSharedKeys in tls13.c"
+      (Closes: #929468)
+    - Fixed CVE-2018-16870 in 3.15.7
+      "Bleichenbacher downgrade attack TLS"
+      (Closes: #918952)
+  * Bumped library major number to 19
+  * Updated shared object symbols
+  * Updated Debian patches
+  * Bumped Standards-Version to 4.4.0
+  * Bumped debhelper compat to 12, via debhelper-compat (= 12) in d/control
+  * Excluded resource.h and generated html in d/copyright
+  * Updated some end dates in d/copyright
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 11 Sep 2019 15:08:30 -0700
+
+wolfssl (3.15.3+dfsg-2) unstable; urgency=medium
+
+  * Ship wolfssl/control.h (Closes: #904711)
+  * Enabled TLS 1.3 (Closes: #904710)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Fri, 03 Aug 2018 20:32:42 -0700
+
+wolfssl (3.15.3+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+  * Fixes "return of the hidden number problem" CVE-2018-12436 (Closes: #901627)
+  * Major number is now 18
+  * Updated shared object symbols
+  * Debug symbol migration complete; code deleted
+  * Shipping examples for C library
+  * Removed doxygen-generated files from source tarball
+  * Removed non-existing 'm4/wolfssl_darwin_clang.m4' from copyright
+  * Updated upstream home page in control
+  * Switched to secure URI for copyright format
+  * Fixed spelling in patch header
+  * Set Standards-Version: 4.1.5
+  * Set compat to 11
+  * Set Build-Depends: debhelper (>= 11)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Thu, 12 Jul 2018 15:29:02 -0700
+
+wolfssl (3.13.0+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+  * Fixes "robot attack" CVE-2017-13099 (Closes: #884235)
+  * New major number 15
+  * Set Standards-Version: 4.1.2
+  * Improved clean target for repeated builds
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Thu, 21 Dec 2017 15:43:45 -0800
+
+wolfssl (3.12.2+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+  * New major number 14
+  * Updated symbols file
+  * Updated watch file
+  * Replaced upstream signing key with 0xEBC80E415CA29677
+  * Updated Standard-Versions: to 4.1.1
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sat, 25 Nov 2017 21:30:15 -0800
+
+wolfssl (3.12.0+dfsg-1) unstable; urgency=medium
+
+  * New upstream release
+  * Shared object version is now 12
+  * CVE-2017-2800 was fixed in 3.11.0 (Closes: #862154)
+  * CVE-2017-8855 was fixed in 3.11.0 (Closes: #870170)
+  * Removed "--with-sha224" from rules; now included in "--enable-distro"
+  * Cannot override lintian for missing upstream signature; source was
+    repackaged (DFSG)
+  * Removed unnecessary Build-Depends: dh-autoreconf
+  * Removed unnecessary Build-Depends: autotools-dev
+  * Updated to Standards-Version: 4.0.0
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sun, 13 Aug 2017 21:00:54 -0700
+
+wolfssl (3.10.2+dfsg-2) unstable; urgency=medium
+
+  * Updated debian/copyright (Closes: #860046)
+  * Disabled CRL monitor for all architectures (Closes: #860514)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sat, 22 Apr 2017 17:48:29 -0700
+
+wolfssl (3.10.2+dfsg-1) unstable; urgency=medium
+
+  * New upstream release.
+  * New major version is 10
+  * New maintainer email address
+  * Fixes a low level vulnerability for buffer overflow when loading a
+    malformed temporary DH file
+  * Fixes a medium level vulnerability for processing of OCSP response
+  * Fixes CVE-2017-6076, a low level vulnerability for a potential
+    cache attack on RSA operations (Closes: #856114)
+  * Enabled SHA-224 for all architectures, as advised by upstream
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sat, 08 Apr 2017 14:09:21 -0700
+
+wolfssl (3.9.10+dfsg-1) unstable; urgency=medium
+
+  * New upstream release (Closes: #793134)
+  * Fixed CVE-2015-6925 (Closes: #801120)
+  * No longer installing arch-dependent options.h (Closes: #792626)
+  * New major number is 3
+  * Using '--enable-distro' to define ABI
+  * Removed all ABI-related build options selecting features
+  * Upgraded Build-Depends: debhelper >=10; bumped compat to 10
+  * Removed Build-Depends: dh-exec
+  * Switched to automatic generation of debug package (dbgsym)
+  * Changed package descriptions and capitalized wolfSSL correctly
+  * Deleted compatibility links for libcyassl5
+  * Removed control file references to libcyassl5
+  * Disabled examples and tests for building without network
+  * Removed duplicate license names from debian/copyright
+  * Updated watch file for upstream's new version tagging scheme on GitHub
+  * Added public key signature verification in watch file
+  * Updated Standard-Version: 3.9.8
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Fri, 02 Dec 2016 20:51:20 -0800
+
+wolfssl (3.4.8+dfsg-1) unstable; urgency=medium
+
+  * Name of package changed from 'cyassl' to 'wolfssl'
+  * New upstream release
+  * Disabled automatic downgrade to SSLv3 in release 3.2.0 (Closes: #769905)
+  * Fixed CVE-2014-2901, CVE-2014-2902, CVE-2014-2903 and CVE-2014-2904
+      in release 3.2.0 (Closes: #770229)
+  * Fixed TEMP-0000000-2D36D7 in release 3.2.0
+  * Added build option '--enable-chacha'
+  * Added build option '--enable-poly1305'
+  * Added build option '--enable-hashdrbg'
+  * Added build option '--use-fastmath'
+  * Added build option '--enable-ecc25519'
+  * Added build flag TFM_TIMING_RESISTANT
+  * Added build flag TFM_NO_ASM
+  * Added Build-Depends: libpcap0.8-dev for sniffer testing
+  * Removed obsolete build option '--enable-gcc-hardening'
+  * Removed LT_LIB_M in configure.ac to avoid linking uselessly with libm
+  * Enabled tests
+  * Added Exclude-Files: in 'copyright' for automatic repackaging
+  * Added repacksuffix=+dfsg in 'watch'
+  * Updated to Standards-Version: 3.9.6
+  * Added dummy package for 'libcyassl5'
+  * Replaces: libcyassl5 (<< 3.4.2-1~)
+  * Breaks: libcyassl5 (<< 3.4.2-1~)
+  * Provides: libcyassl5
+  * Created compatibility symlinks for libcyassl.so.5.0.0
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Sun, 26 Apr 2015 08:23:52 -0700
+
+cyassl (2.9.4+dfsg-3) unstable; urgency=medium
+
+  * Removed build option '--use-fastmath'
+  * Turned off fastmath for amd64, where it is default
+  * Fixed typedef for socklen_t on hurd-i386
+  * Marked debug and development packages as Multi-Arch:same
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 01 Oct 2014 10:34:34 -0700
+
+cyassl (2.9.4+dfsg-2) unstable; urgency=medium
+
+  * Disabled build option '--enable-aesni' (Closes: #760320, #760321)
+  * Disabled build option '--enable-crl-monitor' (Closes: #760322)
+  * Fixed symbol file to reflect '+' added to previous package version
+  * Switched to standard build flags for correct symbol generation and
+    hardening.
+  * Disabled tests that failed (due to expired certificates).
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Tue, 30 Sep 2014 10:57:53 -0700
+
+cyassl (2.9.4+dfsg-1) unstable; urgency=low
+
+  * Initial release (Closes: #598391)
+
+ -- Felix Lechner <felix.lechner@lease-up.com>  Wed, 09 Apr 2014 17:43:28 -0700

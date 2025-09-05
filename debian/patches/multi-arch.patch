@@ -1,0 +1,24 @@
+Description: Make header files multi-arch compatible
+ Exclude architecture dependent option HAVE___UINT128 from config.h
+Author: Felix Lechner
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=970923
+Forwarded: no
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: wolfssl-5.6.6/configure.ac
+===================================================================
+--- wolfssl-5.6.6.orig/configure.ac
++++ wolfssl-5.6.6/configure.ac
+@@ -9460,6 +9460,12 @@ for option in $AM_CPPFLAGS $CPPFLAGS $AM
+             continue
+         fi
+ 
++        if test $(echo "$defonly" | grep '^HAVE___UINT128')
++        then
++            echo "not outputting HAVE___UINT128 to $OPTION_FILE"
++            continue
++        fi
++
+         # allow user to ignore system options
+         ignoresys=$(echo "$noequalsign" | grep '^_.*')
+         if test -n "$ignoresys"

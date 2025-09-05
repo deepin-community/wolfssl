@@ -1,4 +1,32 @@
 #!/usr/bin/make -f
+# -*- makefile -*-
+
+include /usr/share/dpkg/pkg-info.mk
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# Uncomment this to change the hardening options
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+#VERSION=$(shell dpkg-parsechangelog |grep ^Version:|cut -d ' ' -f 2)
+# following is to avoid a lintian warning, but untested
+#VERSION=$(shell echo $DEB_VERSION |cut -d ' ' -f 2)
 
 %:
 	dh $@
+#	dh $@ --with dkms
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--enable-distro \
+		--enable-oldtls \
+		--enable-pkcs11 \
+		--disable-examples \
+		--disable-silent-rules
+
+override_dh_installexamples:
+	dh_installexamples --exclude .vcproj --exclude .vcxproj --exclude .sln
+
+#override_dh_dkms:
+#	dh_dkms -V $(VERSION)
