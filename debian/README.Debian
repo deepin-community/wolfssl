@@ -1,0 +1,58 @@
+                USE IN DEBIAN
+
+wolfSSL is solely provided as an alternative to OpenSSL for packages
+whose licenses are incompatible with Apache 2.0. For details, please
+see Bug#1023697.
+
+            OPENSSL COMPATIBILITY LAYER
+
+To use the OpenSSL compatibility layer in an application, please take
+the following steps:
+
+  1. Convert every #include directive for <openssl/*.h> in your source
+     code to <wolfssl/openssl/*.h>. 
+
+  2. As the first such file included, add <wolfssl/options.h>.
+
+You may not have to do (1) if you tweak your application's build
+system to use -I/usr/include/wolfssl. Please remember, however, to
+remove libssl-dev from your system before building.
+
+If you do not do (2), you will probably see warnings like
+
+    n file included from /usr/include/wolfssl/openssl/bn.h:33,
+                 from /usr/include/wolfssl/openssl/rsa.h:28,
+                 from core/utils.cpp:28:
+/usr/include/wolfssl/wolfcrypt/settings.h:2060:14: warning: #warning "For timing resistance / side-channel attack prevention consider using harden options" [-Wcpp]
+ 2060 |             #warning "For timing resistance / side-channel attack prevention consider using harden options"
+      |              ^~~~~~~
+
+For details, please have a look at Bug#964215.
+
+The same steps are also mentioned in the documentation [1], but that
+part of it may not be phrased clearly. (The API documentation is
+great.)  The instructions in this file were relayed verbally by
+wolfSSl staff in 2014. They worked in multiple cases.
+
+[1] https://www.wolfssl.com/docs/wolfssl-manual/ch13/
+
+Please note that implementation of the OpenSSL compatibility layer is
+not complete. Some functionality, such as access to cryptographic
+primitives via OpenSSL's EVP feature was not implemented at the time
+of writing. You may have to use the native interface for some parts.
+
+          ADDITIONAL LICENSING OPTIONS
+
+For a FIPS Ready module, please contact the wolfSSL company.
+
+The wolfSSL library is commercial product that is popular in the
+embedded space. It has an extremely small footprint. It is available
+under two licenses. For details, please check their website.
+
+Many open source products work with it, such as cURL, stunnel and
+lighttpd. [2]
+
+[2] https://www.wolfssl.com/community/
+
+For help with porting an application, please contact the maintainer of
+this package.

@@ -1,0 +1,20 @@
+Description: Fix type definition for socklen_t on hurd-i386
+ Based on http://bugs.mysql.com/bug.php?id=22326
+Author: Felix Lechner <felix.lechner@lease-up.com>
+Forwarded: not-needed
+Last-Update: 2017-04-22
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: wolfssl-5.6.6/wolfssl/test.h
+===================================================================
+--- wolfssl-5.6.6.orig/wolfssl/test.h
++++ wolfssl-5.6.6/wolfssl/test.h
+@@ -265,7 +265,7 @@
+ #endif
+ #endif /* WOLFSSL_SOCKET_IS_INVALID */
+ 
+-#if defined(__MACH__) || defined(USE_WINDOWS_API)
++#if defined(USE_WINDOWS_API)
+     #ifndef _SOCKLEN_T
+         typedef int socklen_t;
+     #endif

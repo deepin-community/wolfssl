@@ -1,0 +1,28 @@
+Description: Handling existing debian directory
+Author: Jacob Barthelmeh
+Origin: other
+Index: wolfssl-5.6.6/Makefile.am
+===================================================================
+--- wolfssl-5.6.6.orig/Makefile.am
++++ wolfssl-5.6.6/Makefile.am
+@@ -176,7 +176,6 @@ include examples/include.am
+ include testsuite/include.am
+ include tests/include.am
+ include sslSniffer/sslSnifferTest/include.am
+-include debian/include.am
+ include rpm/include.am
+ include linuxkm/include.am
+ include zephyr/include.am
+Index: wolfssl-5.6.6/configure.ac
+===================================================================
+--- wolfssl-5.6.6.orig/configure.ac
++++ wolfssl-5.6.6/configure.ac
+@@ -9358,8 +9358,6 @@ AC_CONFIG_FILES([Makefile
+         wolfssl/version.h
+         wolfssl/options.h
+         support/wolfssl.pc
+-        debian/control
+-        debian/changelog
+         rpm/spec
+         wolfcrypt/test/test_paths.h
+         ])
