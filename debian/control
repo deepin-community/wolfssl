@@ -10,7 +10,7 @@ Rules-Requires-Root: no
 Section: libs
 Homepage: https://www.wolfssl.com/products/wolfssl/
 
-Package: libwolfssl42
+Package: libwolfssl44
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -22,9 +22,8 @@ Description: wolfSSL encryption library
  targeted for use by embedded systems developers. It was formerly
  known as CyaSSL.
  .
- It is an open source, dual licensed implementation of SSL/TLS
- (SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3, DTLS 1.0 and 1.2) written in the C
- language.  wolfSSL includes both a client and server implementation,
+ It is an implementation of SSL/TLS written in the C language.
+ wolfSSL includes both a client and server implementation,
  progressive cipher support, key and certificate generation, OCSP
  and CRL, access to the underlying cryptography modules, and more.
  .
@@ -40,16 +39,15 @@ Section: libdevel
 Architecture: any
 Multi-Arch: no
 Depends:
- libwolfssl42 (= ${binary:Version}),
+ libwolfssl44 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for the wolfSSL encryption library
  wolfSSL is a small, portable, embedded SSL/TLS programming library
  targeted for use by embedded systems developers. It was formerly
  known as CyaSSL.
  .
- It is an open source, dual licensed implementation of SSL/TLS
- (SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3, DTLS 1.0, 1.2 and 1.3) written in the C
- language.  wolfSSL includes both a client and server implementation,
+ It is an implementation of SSL/TLS written in the C language.
+ wolfSSL includes both a client and server implementation,
  progressive cipher support, key and certificate generation, OCSP
  and CRL, access to the underlying cryptography modules, and more.
  .
