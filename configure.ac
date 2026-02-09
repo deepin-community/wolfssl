@@ -7,7 +7,7 @@
 #
 AC_COPYRIGHT([Copyright (C) 2006-2025 wolfSSL Inc.])
 AC_PREREQ([2.69])
-AC_INIT([wolfssl],[5.8.2],[https://github.com/wolfssl/wolfssl/issues],[wolfssl],[https://www.wolfssl.com])
+AC_INIT([wolfssl],[5.8.4],[https://github.com/wolfssl/wolfssl/issues],[wolfssl],[https://www.wolfssl.com])
 AC_CONFIG_AUX_DIR([build-aux])
 
 # Inhibit unwanted regeneration of autotools artifacts by Makefile.
@@ -46,6 +46,10 @@ AC_ARG_VAR(EXTRA_LDFLAGS, [Extra LDFLAGS to add to end of autoconf-computed arg 
 WOLFSSL_CONFIG_ARGS=$ac_configure_args
 AC_SUBST([WOLFSSL_CONFIG_ARGS])
 
+# Store configure options and CFLAGS for debian rules generation
+CONFIGURE_OPTIONS="$ac_configure_args"
+AC_SUBST([CONFIGURE_OPTIONS])
+
 # shared library versioning
 # The three numbers in the libwolfssl.so.*.*.* file name. Unfortunately
 
@@ -59,7 +63,7 @@ WOLFSSL_LIBRARY_VERSION_SECOND=0
 # increment if source code has changed
 # set to zero if WOLFSSL_LIBRARY_VERSION_FIRST is incremented or
 # WOLFSSL_LIBRARY_VERSION_SECOND is incremented
-WOLFSSL_LIBRARY_VERSION_THIRD=0
+WOLFSSL_LIBRARY_VERSION_THIRD=1
 
 WOLFSSL_LIBRARY_VERSION=${WOLFSSL_LIBRARY_VERSION_FIRST}:${WOLFSSL_LIBRARY_VERSION_SECOND}:${WOLFSSL_LIBRARY_VERSION_THIRD}
 AC_SUBST([WOLFSSL_LIBRARY_VERSION_FIRST])
@@ -130,23 +134,35 @@ AC_ARG_ENABLE([linuxkm],
 
 AC_ARG_ENABLE([linuxkm-defaults],
     [AS_HELP_STRING([--enable-linuxkm-defaults],[Enable feature defaults for Linux Kernel Module (default: disabled)])],
-    [ENABLED_LINUXKM_DEFAULTS=$enableval],
-    [ENABLED_LINUXKM_DEFAULTS=$ENABLED_LINUXKM]
+    [KERNEL_MODE_DEFAULTS=$enableval],
+    [KERNEL_MODE_DEFAULTS=$ENABLED_LINUXKM]
     )
 
+# FreeBSD Kernel Module
+AC_ARG_ENABLE([freebsdkm],
+    [AS_HELP_STRING([--enable-freebsdkm],[Enable FreeBSD Kernel Module (default: disabled)])],
+    [ENABLED_BSDKM=$enableval],
+    [ENABLED_BSDKM=no]
+    )
 
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stddef.h time.h sys/ioctl.h sys/socket.h sys/time.h errno.h sys/un.h ctype.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stddef.h time.h sys/ioctl.h sys/socket.h sys/time.h errno.h sys/un.h ctype.h sys/random.h])
 AC_CHECK_LIB([network],[socket])
 AC_C_BIGENDIAN
 AC_C___ATOMIC
-AC_CHECK_HEADER(stdatomic.h, [AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSL_HAVE_ATOMIC_H"],[])
+if test "x$ENABLED_BSDKM" = "xyes"; then
+    # The <stdatomic.h> header should not be included in freebsd kernel build.
+    # Look for <machine/atomic.h> instead.
+    AC_CHECK_HEADER(machine/atomic.h, [AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSL_HAVE_ATOMIC_H"],[])
+else
+    AC_CHECK_HEADER(stdatomic.h, [AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSL_HAVE_ATOMIC_H"],[])
+fi
 AC_CHECK_HEADER(assert.h, [AM_CPPFLAGS="$AM_CPPFLAGS -DWOLFSSL_HAVE_ASSERT_H"],[])
 
 # check if functions of interest are linkable, but also check if
 # they're declared by the expected headers, and if not, supersede the
 # unusable positive from AC_CHECK_FUNCS().
 AC_CHECK_FUNCS([gethostbyname getaddrinfo gettimeofday gmtime_r gmtime_s inet_ntoa memset socket strftime atexit isascii getpid getrandom])
-AC_CHECK_DECLS([gethostbyname, getaddrinfo, gettimeofday, gmtime_r, gmtime_s, inet_ntoa, memset, socket, strftime, atexit, isascii, getpid], [], [
+AC_CHECK_DECLS([gethostbyname, getaddrinfo, gettimeofday, gmtime_r, gmtime_s, inet_ntoa, memset, socket, strftime, atexit, isascii, getpid, getrandom], [], [
 if test "$(eval echo \$"$(eval 'echo ac_cv_func_${as_decl_name}')")" = "yes"
 then
     AC_MSG_NOTICE([    note: earlier check for $(eval 'echo ${as_decl_name}') superseded.])
@@ -182,6 +198,9 @@ fi
 #ifdef HAVE_CTYPE_H
     #include <ctype.h>
 #endif
+#ifdef HAVE_SYS_RANDOM_H
+    #include <sys/random.h>
+#endif
 ]])
 
 AC_PROG_INSTALL
@@ -196,6 +215,7 @@ OPTIMIZE_HUGE_CFLAGS="-funroll-loops -DTFM_SMALL_SET -DTFM_HUGE_SET"
 DEBUG_CFLAGS="-g -DDEBUG -DDEBUG_WOLFSSL"
 LIB_ADD=
 LIB_STATIC_ADD=
+PC_LIBS_PRIVATE=""
 
 OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS $EXTRA_OPTS_CFLAGS"
 OPTIMIZE_FAST_CFLAGS="$OPTIMIZE_FAST_CFLAGS $EXTRA_OPTS_CFLAGS"
@@ -437,6 +457,8 @@ AS_CASE([$ENABLED_WOLFENGINE],
 #   rand - wolfRand
 #   v5 - FIPS 140-3 Cert 4718
 #   cert4718 - alias for v5
+#   v5.2.3 -- FIPS 140-3 with support for ARM acceleration, derived from Cert 4718
+#   v5.2.4 -- FIPS 140-3 with support for Linux kernel mode, derived from v5.2.3
 #   ready - FIPS 140-3 settings with in-tree wolfcrypt sources, feature locked
 #   dev - FIPS 140-3 settings with in-tree wolfcrypt sources, features freely adjustable
 #   v5-ready - Alias for ready.
@@ -492,6 +514,24 @@ AS_CASE([$ENABLED_FIPS],
         ENABLED_FIPS="yes"
         DEF_SP_MATH="no"
         DEF_FAST_MATH="yes"
+    ],
+    [v5.2.3],[
+        FIPS_VERSION="v5"
+        HAVE_FIPS_VERSION_MAJOR=5
+        HAVE_FIPS_VERSION_MINOR=2
+        HAVE_FIPS_VERSION_PATCH=3
+        ENABLED_FIPS="yes"
+        DEF_SP_MATH="yes"
+        DEF_FAST_MATH="no"
+    ],
+    [v5.2.4],[
+        FIPS_VERSION="v5"
+        HAVE_FIPS_VERSION_MAJOR=5
+        HAVE_FIPS_VERSION_MINOR=2
+        HAVE_FIPS_VERSION_PATCH=4
+        ENABLED_FIPS="yes"
+        DEF_SP_MATH="yes"
+        DEF_FAST_MATH="no"
     ],
     [v5-RC12],[
         FIPS_VERSION="v5-RC12"
@@ -628,10 +668,7 @@ then
     AS_CASE([$xxx_ar_flags],[*'use zero for timestamps and uids/gids'*],[AR_FLAGS="Dcr" lt_ar_flags="Dcr"])
     AS_CASE([$xxx_ranlib_flags],[*'Use zero for symbol map timestamp'*],[RANLIB="${RANLIB} -D"])
 
-    if test "$ENABLED_DEBUG_TRACE_ERRCODES" != "backtrace"
-    then
-        AM_CFLAGS="$AM_CFLAGS -DHAVE_REPRODUCIBLE_BUILD -g0"
-    fi
+    AM_CFLAGS="$AM_CFLAGS -DHAVE_REPRODUCIBLE_BUILD"
 
     # opportunistically use -ffile-prefix-map (added in GCC8 and LLVM10)
 
@@ -672,24 +709,24 @@ AC_ARG_ENABLE([linuxkm-pie],
     [ENABLED_LINUXKM_PIE=$enableval],
     [ENABLED_LINUXKM_PIE=$ENABLED_FIPS]
     )
-if test "$ENABLED_LINUXKM_PIE" = "yes"
+if test "$ENABLED_LINUXKM" = "yes" && test "$ENABLED_LINUXKM_PIE" = "yes"
 then
-    AM_CFLAGS="$AM_CFLAGS -DHAVE_LINUXKM_PIE_SUPPORT"
+    AM_CFLAGS="$AM_CFLAGS -DWC_PIE_RELOC_TABLES"
 fi
 AC_SUBST([ENABLED_LINUXKM_PIE])
 
 AC_ARG_ENABLE([linuxkm-benchmarks],
     [AS_HELP_STRING([--enable-linuxkm-benchmarks],[Enable crypto benchmarking autorun at module load time for Linux kernel module (default: disabled)])],
-    [ENABLED_LINUXKM_BENCHMARKS=$enableval],
-    [ENABLED_LINUXKM_BENCHMARKS=no]
+    [ENABLED_KERNEL_BENCHMARKS=$enableval],
+    [ENABLED_KERNEL_BENCHMARKS=no]
     )
-if test "$ENABLED_LINUXKM_BENCHMARKS" = "yes"
+if test "$ENABLED_KERNEL_BENCHMARKS" = "yes"
 then
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_LINUXKM_BENCHMARKS"
 fi
-AC_SUBST([ENABLED_LINUXKM_BENCHMARKS])
+AC_SUBST([ENABLED_KERNEL_BENCHMARKS])
 
-if test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+if test "$ENABLED_LINUXKM" = "yes" && test "$KERNEL_MODE_DEFAULTS" = "yes"
 then
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_DH_CONST -DWOLFSSL_SP_MOD_WORD_RP -DWOLFSSL_SP_DIV_64 -DWOLFSSL_SP_DIV_WORD_HALF -DWOLFSSL_SMALL_STACK_STATIC -DWC_SHA3_NO_ASM"
     if test "$ENABLED_LINUXKM_PIE" = "yes"; then
@@ -702,10 +739,20 @@ then
     DEF_FAST_MATH="no"
 fi
 
+#
+# kernel mode variables. Shared by linuxkm, freebsdkm.
+KERNEL_ROOT=""
+HAVE_KERNEL_MODE=no
+
+# Kernel root source tree.
+AC_ARG_WITH([kernel-source],
+    [AS_HELP_STRING([--with-kernel-source=PATH],[PATH to root of kernel build tree])],
+    [KERNEL_ROOT=$withval])
+
+# For backwards compatibility.
 AC_ARG_WITH([linux-source],
     [AS_HELP_STRING([--with-linux-source=PATH],[PATH to root of Linux kernel build tree])],
-    [KERNEL_ROOT=$withval],
-    [KERNEL_ROOT=""])
+    [KERNEL_ROOT=$withval])
 
 AC_ARG_WITH([linux-arch],
     [AS_HELP_STRING([--with-linux-arch=arch],[built arch (SRCARCH) of Linux kernel build tree])],
@@ -714,7 +761,19 @@ AC_ARG_WITH([linux-arch],
 
 if test "x$ENABLED_LINUXKM" = "xyes"
 then
-    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_LINUXKM -DWC_SIPHASH_NO_ASM"
+    HAVE_KERNEL_MODE=yes
+    # Currently DWARF 5 is the default debug format, but it results in
+    # "Unsupported DW_TAG_atomic_type(0x47): type: 0x1eefc" in some
+    # kernel module builds.
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_LINUXKM -DWC_SIPHASH_NO_ASM -gdwarf-4"
+    AS_IF([test "$ax_enable_debug" = "yes"],
+          [AM_CFLAGS="$AM_CFLAGS -g3"],
+          [AM_CFLAGS="$AM_CFLAGS -g1"])
+    AM_CCASFLAGS="$AM_CFLAGS -DWOLFSSL_LINUXKM -DWC_SIPHASH_NO_ASM -gdwarf-4"
+    AS_IF([test "$ax_enable_debug" = "yes"],
+          [AM_CCASFLAGS="$AM_CFLAGS -g3"],
+          [AM_CCASFLAGS="$AM_CFLAGS -g1"])
+
     ENABLED_NO_LIBRARY=yes
     ENABLED_BENCHMARK=no
     output_objdir="$(realpath "$output_objdir")/linuxkm"
@@ -741,6 +800,40 @@ then
     AM_CFLAGS="$AM_CFLAGS -DNO_DEV_RANDOM -DNO_WRITEV -DNO_STDIO_FILESYSTEM -DWOLFSSL_NO_SOCK -DWOLFSSL_USER_IO"
 fi
 
+#
+# FreeBSD
+AC_ARG_WITH([bsd-export-syms],
+    [AS_HELP_STRING([--with-bsd-export-syms=LIST],[Sets FreeBSD kernel module EXPORT_SYMS. Allowed values: YES, NO, or LIST of symbols to export (default NO).])],
+    [BSDKM_EXPORT_SYMS=$withval],
+    [BSDKM_EXPORT_SYMS="NO"])
+
+if test "x$ENABLED_BSDKM" = "xyes"
+then
+    # wolfcrypt only, no-asm supported for now.
+    HAVE_KERNEL_MODE=yes
+    KERNEL_MODE_DEFAULTS=yes
+    ENABLED_NO_LIBRARY=yes
+    ENABLED_BENCHMARK=no
+    ENABLED_ASM=no
+
+    output_objdir="$(realpath "$output_objdir")/bsdkm"
+
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_BSDKM -DWC_SIPHASH_NO_ASM"
+    AM_CFLAGS="$AM_CFLAGS -DTFM_NO_ASM -DWOLFSSL_NO_ASM"
+    AM_CFLAGS="$AM_CFLAGS -DNO_DEV_RANDOM -DNO_WRITEV -DNO_STDIO_FILESYSTEM"
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_NO_SOCK -DWOLFSSL_USER_IO"
+    AM_CFLAGS="$AM_CFLAGS -DXMALLOC_OVERRIDE -DWOLFCRYPT_ONLY"
+    AM_CFLAGS="$AM_CFLAGS -DNO_ASN_TIME"
+
+    if test "$KERNEL_ROOT" = ""; then
+        AC_PATH_DEFAULT_BSDKM_SOURCE
+        KERNEL_ROOT="$DEFAULT_BSDKM_ROOT"
+    fi
+    AC_SUBST([KERNEL_ROOT])
+    AC_SUBST([BSDKM_EXPORT_SYMS])
+
+fi
+# end FreeBSD configure
 
 # MATH LIBRARY SELECTION
 
@@ -769,7 +862,7 @@ AC_ARG_ENABLE([sp-math-all],
     )
 
 # Single Precision maths (acceleration for common key sizes and curves)
-if test "$ENABLED_LINUXKM_DEFAULTS" = "yes" && test "$ENABLED_SP" != "no" && test "$ENABLED_SP_MATH_ALL" = "no"
+if test "$KERNEL_MODE_DEFAULTS" = "yes" && test "$ENABLED_SP" != "no" && test "$ENABLED_SP_MATH_ALL" = "no"
 then
     ENABLED_SP_MATH_DEFAULT=yes
 else
@@ -799,7 +892,7 @@ fi
 
 # enable SP math assembly support automatically for x86_64 and aarch64 (except Linux kernel module)
 SP_ASM_DEFAULT=no
-if test "$ENABLED_SP_MATH" = "yes" && test "$ENABLED_LINUXKM_DEFAULTS" = "no"
+if test "$ENABLED_SP_MATH" = "yes" && test "$KERNEL_MODE_DEFAULTS" = "no"
 then
     if test "$host_cpu" = "x86_64" || test "$host_cpu" = "aarch64" || test "$host_cpu" = "amd64"
     then
@@ -983,9 +1076,9 @@ fi
 if test "$ENABLED_TLS" = "no"
 then
     AM_CFLAGS="$AM_CFLAGS -DNO_TLS"
-    test "$enable_tls13" = "" && enable_tls13=no
-    test "$enable_tlsv12" = "" && enable_tlsv12=no
-    test "$enable_tlsv10" = "" && enable_tlsv10=no
+    # don't set enable_tls13 or enable_tlsv12 to "no" -- even in cryptonly and
+    # NO_TLS build, they're needed for their crypto-layer KDFs.
+    # enable_tlsv10 defaults to "no", so we don't need to set it here either.
     test "$enable_dtls" = "" && enable_dtls=no
     test "$enable_dtls13" = "" && enable_dtls13=no
     test "$enable_dtls_mtu" = "" && enable_dtls_mtu=no
@@ -1002,6 +1095,10 @@ then
     test "$enable_quic" = "" && enable_quic=no
     test "$enable_ech" = "" && enable_ech=no
     test "$enable_ocspstapling" = "" && enable_ocspstapling=no
+    test "$enable_earlydata" = "" && enable_earlydata=no
+    test "$enable_renegotiation_indication" = "" && enable_renegotiation_indication=no
+    test "$enable_secure_renegotiation_info" = "" && enable_secure_renegotiation_info=no
+    test "$enable_secure_renegotiation" = "" && enable_secure_renegotiation=no
 
     # Disable all open source compatibility enables that might get set with all
     test "$enable_all_osp" = "" && enable_all_osp=no
@@ -1018,7 +1115,7 @@ if test "$ENABLED_ALL" = "yes"
 then
     test "$enable_all_crypto" = "" && enable_all_crypto=yes
 
-    test "$enable_all_osp" = "" && test "$ENABLED_LINUXKM_DEFAULTS" != "yes" && enable_all_osp=yes
+    test "$enable_all_osp" = "" && test "$KERNEL_MODE_DEFAULTS" != "yes" && enable_all_osp=yes
 
     test "$enable_dtls" = "" && enable_dtls=yes
     test "$enable_dtls_mtu" = "" && enable_dtls_mtu=yes
@@ -1045,16 +1142,17 @@ then
     test "$enable_earlydata" = "" && enable_earlydata=yes
     test "$enable_rpk" = "" && enable_rpk=yes
 
-    if test "$ENABLED_LINUXKM_DEFAULTS" != "yes"
+    if test "$KERNEL_MODE_DEFAULTS" != "yes"
     then
-        test "$enable_quic" = "" && test "$enable_cryptonly" != "yes" && enable_quic=yes
+        # Disable QUIC with JNI since incompatible with WOLFSSL_TLS13_MIDDLEBOX_COMPAT
+        test "$enable_quic" = "" && test "$enable_cryptonly" != "yes" && test "$enable_jni" != "yes" && enable_quic=yes
         AM_CFLAGS="$AM_CFLAGS -DHAVE_CRL_IO -DHAVE_IO_TIMEOUT"
     fi
 
     if test "$ENABLED_SP_MATH" != "yes"
     then
         # linuxkm is incompatible with opensslextra and its dependents.
-        if test "$ENABLED_LINUXKM_DEFAULTS" != "yes"
+        if test "$KERNEL_MODE_DEFAULTS" != "yes"
         then
             test "$enable_opensslextra" = "" && enable_opensslextra=yes
             test "$enable_opensslall" = "" && enable_opensslall=yes
@@ -1064,7 +1162,8 @@ then
 
     if test "$ENABLED_FIPS" = "no"
     then
-        test "$enable_ech" = "" && enable_ech=yes
+        # Disable ECH with JNI since incompatible with WOLFSSL_TLS13_MIDDLEBOX_COMPAT
+        test "$enable_ech" = "" && test "$enable_jni" != "yes" && enable_ech=yes
         test "$enable_scep" = "" && enable_scep=yes
         test "$enable_mcast" = "" && enable_mcast=yes
     fi
@@ -1096,11 +1195,12 @@ AC_ARG_ENABLE([all-osp],
 
 if test "$ENABLED_ALL_OSP" = "yes"
 then
-    if test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+    if test "$KERNEL_MODE_DEFAULTS" = "yes"
     then
         AC_MSG_ERROR([--enable-all-osp is incompatible with --enable-linuxkm-defaults])
     fi
 
+    test "$enable_wolfguard" = "" && enable_wolfguard=yes
     test "$enable_webserver" = "" && enable_webserver=yes
 
     if test "$ENABLED_SP_MATH" != "yes"
@@ -1159,7 +1259,7 @@ then
 fi
 
 if test "$enable_all_crypto" = "yes" &&
-   test "$ENABLED_LINUXKM_DEFAULTS" = "no" &&
+   test "$KERNEL_MODE_DEFAULTS" = "no" &&
    test "$ENABLED_ASM" != "no" &&
    test "$HAVE_GNUC" = "yes" &&
    test "$enable_sp_asm" != "no" &&
@@ -1275,6 +1375,7 @@ AC_ARG_ENABLE([all-crypto],
 if test "$ENABLED_ALL_CRYPT" = "yes"
 then
     test "$enable_atomicuser" = "" && enable_atomicuser=yes
+    test "$enable_aesecb" = "" && enable_aesecb=yes
     test "$enable_aesgcm" = "" && enable_aesgcm=yes
     test "$enable_aesccm" = "" && enable_aesccm=yes
     test "$enable_aesctr" = "" && enable_aesctr=yes
@@ -1293,10 +1394,10 @@ then
     test "$enable_certext" = "" && enable_certext=yes
     test "$enable_sep" = "" && enable_sep=yes
     test "$enable_hkdf" = "" && enable_hkdf=yes
-    test "$enable_fpecc" = "" && test "$enable_ecc" != "no" && enable_fpecc=yes
     test "$enable_eccencrypt" = "" && test "$enable_ecc" != "no" && enable_eccencrypt=yes
     test "$enable_psk" = "" && enable_psk=yes
     test "$enable_cmac" = "" && enable_cmac=yes
+    test "$enable_cmac_kdf" = "" && enable_cmac_kdf=yes
     test "$enable_siphash" = "" && enable_siphash=yes
     test "$enable_ocsp" = "" && enable_ocsp=yes
     test "$enable_ocspstapling" = "" && test "$enable_ocsp" != "no" && enable_ocspstapling=yes
@@ -1323,6 +1424,13 @@ then
     test "$enable_anon" = "" && enable_anon=yes
     test "$enable_ssh" = "" && test "$enable_hmac" != "no" && enable_ssh=yes
 
+    # the compiler optimizer generates a weird out-of-bounds bss reference for
+    # find_hole() in the FP_ECC implementation.
+    if test "$ENABLED_LINUXKM_PIE" != yes
+    then
+        test "$enable_fpecc" = "" && test "$enable_ecc" != "no" && enable_fpecc=yes
+    fi
+
     if test "x$FIPS_VERSION" != "xv1"
     then
         test "$enable_rsapss" = "" && enable_rsapss=yes
@@ -1344,8 +1452,6 @@ then
     then
         test "$enable_curve25519" = "" && enable_curve25519=yes
         test "$enable_curve448" = "" && enable_curve448=yes
-        test "$enable_cryptocb" = "" && enable_cryptocb=yes
-        test "$enable_pkcallbacks" = "" && enable_pkcallbacks=yes
         test "$enable_xchacha" = "" && test "$enable_chacha" != "no" && enable_xchacha=yes
         test "$enable_pkcs7" = "" && enable_pkcs7=yes
         test "$enable_nullcipher" = "" && enable_nullcipher=yes
@@ -1356,8 +1462,10 @@ then
         test "$enable_aessiv" = "" && enable_aessiv=yes
         test "$enable_aeseax" = "" && enable_aeseax=yes
 
-        if test "$ENABLED_LINUXKM_DEFAULTS" != "yes"
+        if test "$KERNEL_MODE_DEFAULTS" != "yes"
         then
+            test "$enable_cryptocb" = "" && enable_cryptocb=yes
+            test "$enable_pkcallbacks" = "" && enable_pkcallbacks=yes
             test "$enable_eccsi" = "" && test "$enable_ecc" != "no" && enable_eccsi=yes
             test "$enable_sakke" = "" && test "$enable_ecc" != "no" && enable_sakke=yes
         fi
@@ -1370,7 +1478,7 @@ then
         test "$enable_aesxts_stream" = "" && test "$enable_aesxts" = "yes" && enable_aesxts_stream=yes
         test "$enable_shake128" = "" && enable_shake128=yes
         test "$enable_shake256" = "" && enable_shake256=yes
-        test "$enable_compkey" = "" && test "$ENABLED_LINUXKM_DEFAULTS" != "yes" && enable_compkey=yes
+        test "$enable_compkey" = "" && enable_compkey=yes
         # AFALG lacks AES-ECB
         test "$enable_srtp_kdf" = "" && test "$enable_afalg" != "yes" && enable_srtp_kdf=yes
     fi
@@ -1397,6 +1505,29 @@ then
 
     # Store issuer name components when parsing certificates.
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_HAVE_ISSUER_NAMES"
+
+    # Enable onestep KDF from NIST SP 800 56c option 1.
+    AM_CFLAGS="$AM_CFLAGS -DWC_KDF_NIST_SP_800_56C"
+fi
+
+# wolfGuard
+AC_ARG_ENABLE([wolfguard],
+    [AS_HELP_STRING([--enable-wolfguard],[Enable wolfGuard dependencies (default: disabled)])],
+    [ ENABLED_WOLFGUARD=$enableval ],
+    [ ENABLED_WOLFGUARD=no ]
+    )
+if test "$ENABLED_WOLFGUARD" = "yes"
+then
+    test "$enable_ecc" = "" && enable_ecc=yes
+    test "$enable_sha256" = "" && enable_sha256=yes
+    test "$enable_aesgcm" = "" && enable_aesgcm=yes
+    test "$enable_base64encode" = "" && enable_base64encode=yes
+    test "$enable_base16" = "" && enable_base16=yes
+    if test "$ENABLED_FIPS" = "no" || test "$HAVE_FIPS_VERSION" -ge 6
+    then
+        test "$enable_compkey" = "" && enable_compkey=yes
+        test "$enable_aesgcm_stream" = "" && enable_aesgcm_stream=yes
+    fi
 fi
 
 # liboqs
@@ -1451,14 +1582,14 @@ AC_ARG_WITH([liboqs],
 # MLKEM
 # Used:
 #  - SHA3, Shake128 and Shake256
-AC_ARG_ENABLE([kyber],
-    [AS_HELP_STRING([--enable-kyber],[Enable Kyber/MLKEM (default: disabled)])],
+AC_ARG_ENABLE([mlkem],
+    [AS_HELP_STRING([--enable-mlkem],[Enable MLKEM (default: disabled)])],
     [ ENABLED_MLKEM=$enableval ],
     [ ENABLED_MLKEM=no ]
     )
-# note, inherits default from "kyber" clause above.
-AC_ARG_ENABLE([mlkem],
-    [AS_HELP_STRING([--enable-mlkem],[Enable MLKEM (default: disabled)])],
+# note, inherits default from "mlkem" clause above.
+AC_ARG_ENABLE([kyber],
+    [AS_HELP_STRING([--enable-kyber],[Enable Kyber/MLKEM (default: disabled)])],
     [ ENABLED_MLKEM=$enableval ]
     )
 
@@ -1587,10 +1718,15 @@ fi
 
 # Dilithium
 #  - SHA3, Shake128, Shake256 and AES-CTR
-AC_ARG_ENABLE([dilithium],
-    [AS_HELP_STRING([--enable-dilithium],[Enable DILITHIUM (default: disabled)])],
+AC_ARG_ENABLE([mldsa],
+    [AS_HELP_STRING([--enable-mldsa],[Enable MLDSA (default: disabled)])],
     [ ENABLED_DILITHIUM=$enableval ],
     [ ENABLED_DILITHIUM=no ]
+    )
+# note, inherits default from "mldsa" clause above.
+AC_ARG_ENABLE([dilithium],
+    [AS_HELP_STRING([--enable-dilithium],[Enable Dilithium/MLDSA (default: disabled)])],
+    [ ENABLED_DILITHIUM=$enableval ]
     )
 
 ENABLED_DILITHIUM_OPTS=$ENABLED_DILITHIUM
@@ -1676,6 +1812,7 @@ then
 
     if test "$ENABLED_LIBOQS" = "no"; then
         AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_WC_DILITHIUM"
+        AM_CCASFLAGS="$AM_CCASFLAGS -DWOLFSSL_WC_DILITHIUM"
         test "$enable_sha3" = "" && enable_sha3=yes
         test "$enable_shake128" = "" && enable_shake128=yes
         test "$enable_shake256" = "" && enable_shake256=yes
@@ -1990,8 +2127,7 @@ AC_ARG_ENABLE([tls13],
     [ ENABLED_TLS13=yes ]
     )
 if test "x$FIPS_VERSION" = "xv1" ||
-        ( test "$HAVE_FIPS_VERSION" = 2 && test "$HAVE_FIPS_VERSION_MINOR" = 1 ) ||
-        test "$ENABLED_CRYPTONLY" = "yes"
+        ( test "$HAVE_FIPS_VERSION" = 2 && test "$HAVE_FIPS_VERSION_MINOR" = 1 )
 then
     ENABLED_TLS13="no"
 fi
@@ -2979,6 +3115,19 @@ AS_IF([ test "x$ENABLED_SNIFFER" = "xyes" ],
       ])
 
 
+# AES-ECB
+AC_ARG_ENABLE([aesecb],
+    [AS_HELP_STRING([--enable-aesecb],[Enable wolfSSL AES-ECB support (default: enabled)])],
+    [ ENABLED_AESECB=$enableval ],
+    [ ENABLED_AESECB=no ]
+    )
+
+if test "$ENABLED_AESECB" != "no"
+then
+    AM_CFLAGS="$AM_CFLAGS -DHAVE_AES_ECB"
+    AM_CCASFLAGS="$AM_CCASFLAGS -DHAVE_AES_ECB"
+fi
+
 # AES-CBC
 AC_ARG_ENABLE([aescbc],
     [AS_HELP_STRING([--enable-aescbc],[Enable wolfSSL AES-CBC support (default: enabled)])],
@@ -3308,7 +3457,7 @@ then
     ENABLED_ARMASM="yes"
 
     AM_CCASFLAGS="$AM_CCASFLAGS -DWOLFSSL_ARMASM"
-    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ARMASM -DWOLFSSL_NO_HASH_RAW"
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ARMASM"
     #Check if mcpu and mfpu values already set if not use default
     case $CPPFLAGS in
     *mcpu* | *mfpu*)
@@ -3723,7 +3872,7 @@ then
     if test "$ENABLED_AESNI" = "yes" || test "$ENABLED_INTELASM" = "yes"
     then
         AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_AESNI"
-        if test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+        if test "$KERNEL_MODE_DEFAULTS" = "yes"
         then
                 AM_CFLAGS="$AM_CFLAGS -DWC_C_DYNAMIC_FALLBACK"
         fi
@@ -3777,6 +3926,18 @@ AC_ARG_ENABLE([intelrand],
 if test "$ENABLED_INTELRDRAND" = "yes"
 then
     AM_CFLAGS="$AM_CFLAGS -DHAVE_INTEL_RDRAND"
+fi
+
+# INTEL RDSEED
+AC_ARG_ENABLE([intelrdseed],
+    [AS_HELP_STRING([--enable-intelrdseed],[Enable Intel rdseed as preferred RNG seeding source (default: disabled)])],
+    [ ENABLED_INTELRDSEED=$enableval ],
+    [ ENABLED_INTELRDSEED=no ]
+    )
+
+if test "$ENABLED_INTELRDSEED" = "yes"
+then
+    AM_CFLAGS="$AM_CFLAGS -DHAVE_INTEL_RDSEED"
 fi
 
 # AMD RDSEED
@@ -4815,10 +4976,6 @@ AC_ARG_ENABLE([tlsv10],
     [ ENABLED_TLSV10=no ]
     )
 
-if test "$ENABLED_CRYPTONLY" = "yes"
-then
-    ENABLED_TLSV12=no
-fi
 if test "$ENABLED_TLSV10" = "yes"
 then
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ALLOW_TLSV10"
@@ -4858,15 +5015,6 @@ AC_ARG_ENABLE([tlsv12],
     [ ENABLED_TLSV12=$enableval ],
     [ ENABLED_TLSV12=yes ]
     )
-
-if test "$ENABLED_CRYPTONLY" = "yes"
-then
-    ENABLED_TLSV12=no
-fi
-if test "$ENABLED_TLSV12" = "no"
-then
-    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_NO_TLS12 -DNO_OLD_TLS"
-fi
 
 # STACK SIZE info for testwolfcrypt and examples
 AC_ARG_ENABLE([stacksize],
@@ -5532,6 +5680,20 @@ AC_ARG_ENABLE([siphash],
 AS_IF([test "x$ENABLED_SIPHASH" = "xyes"],
       [AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_SIPHASH"])
 
+AC_ARG_ENABLE([cmac-kdf],
+    [AS_HELP_STRING([--enable-cmac-kdf],[Enables cmac-kdf support (default: disabled)])],
+    [ ENABLED_CMAC_KDF=$enableval ],
+    [ ENABLED_CMAC_KDF=no ]
+    )
+
+if test "$ENABLED_CMAC_KDF" = "yes"
+then
+ if test "$ENABLED_KDF" != "yes"
+ then
+   AC_MSG_ERROR([enable-cmac-kdf requires --enable-kdf])
+ fi
+  AM_CFLAGS="$AM_CFLAGS -DHAVE_CMAC_KDF"
+fi
 
 # CMAC
 AC_ARG_ENABLE([cmac],
@@ -5540,7 +5702,7 @@ AC_ARG_ENABLE([cmac],
     [ ENABLED_CMAC=no ]
     )
 
-if test "$ENABLED_WPAS" != "no" || test "$ENABLED_NTP" = "yes" || test "$ENABLED_AESSIV" = "yes" || test "$ENABLED_WOLFENGINE" = "yes" || test "$ENABLED_AESEAX" = "yes"
+if test "$ENABLED_WPAS" != "no" || test "$ENABLED_NTP" = "yes" || test "$ENABLED_AESSIV" = "yes" || test "$ENABLED_WOLFENGINE" = "yes" || test "$ENABLED_AESEAX" = "yes" || test "$ENABLED_CMAC_KDF" = "yes"
 then
     ENABLED_CMAC=yes
 fi
@@ -5655,7 +5817,11 @@ AC_ARG_ENABLE([pwdbased],
 # MemUse Entropy
 # wolfEntropy Software Jitter SP800-90B certifiable entropy source
 
-if test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+if test "$KERNEL_MODE_DEFAULTS" = "yes" && \
+   test "$ENABLED_AMDRDSEED" != "yes" && \
+   test "$ENABLED_INTELRDRAND" != "yes" && \
+   test "$ENABLED_INTELRDSEED" != "yes" && \
+   (test "$ENABLED_FIPS" = "no" || test "$HAVE_FIPS_VERSION" -ge 6)
 then
     ENABLED_ENTROPY_MEMUSE_DEFAULT=yes
 else
@@ -5746,7 +5912,7 @@ AS_CASE([$FIPS_VERSION],
                (test "$FIPS_VERSION" != "dev" || test "$enable_keygen" != "no")],
             [ENABLED_KEYGEN="yes"; AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_KEY_GEN"])
 
-#        AS_IF([test "$ENABLED_COMPKEY" = "yes" &&
+#        AS_IF([test "$ENABLED_COMPKEY" != "yes" &&
 #               (test "$FIPS_VERSION" != "dev" || test "$enable_compkey" != "yes")],
 #            [ENABLED_COMPKEY="yes"])
 
@@ -6543,6 +6709,7 @@ fi
 if test "$ENABLED_CHACHA" != "no"
 then
     AM_CFLAGS="$AM_CFLAGS -DHAVE_CHACHA"
+    AM_CCASFLAGS="$AM_CCASFLAGS -DHAVE_CHACHA"
 fi
 
 
@@ -6626,7 +6793,7 @@ fi
 
 
 # Filesystem Build
-if test "$ENABLED_LINUXKM" = "yes"
+if test "$HAVE_KERNEL_MODE" = "yes"
 then
     ENABLED_FILESYSTEM_DEFAULT=no
 else
@@ -7333,7 +7500,7 @@ then
 fi
 
 # Small Stack - Cache on object
-if test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+if test "$KERNEL_MODE_DEFAULTS" = "yes" && (test "$ENABLED_FIPS" = "no" || test "$HAVE_FIPS_VERSION" -ge 6)
 then
     ENABLED_SMALL_STACK_CACHE_DEFAULT=yes
 else
@@ -7351,7 +7518,7 @@ then
 fi
 
 # Small Stack
-if test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+if test "$KERNEL_MODE_DEFAULTS" = "yes"
 then
     ENABLED_SMALL_STACK_DEFAULT=yes
 else
@@ -7466,6 +7633,10 @@ then
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ALWAYS_VERIFY_CB"
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ALWAYS_KEEP_SNI"
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_TLS13_MIDDLEBOX_COMPAT"
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_PUBLIC_MP"
+
+    # Enable openssl compat layer AES-CTS to maintain FIPS compatibility
+    AM_CFLAGS="$AM_CFLAGS -DHAVE_CTS"
 
     # Enable prereqs if not already enabled
     if test "x$ENABLED_DTLS" = "xno"
@@ -8177,6 +8348,20 @@ then
         ENABLED_TICKET_NONCE_MALLOC="yes"
         AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_TICKET_NONCE_MALLOC"
     fi
+elif test "$ENABLED_CURL" = "tiny"
+then
+    # basic config to support tiny-curl.
+    # OPENSSL_EXTRA_X509_SMALL is sufficient.
+    if test "x$ENABLED_OPENSSLEXTRA" = "xno"
+    then
+        ENABLED_OPENSSLEXTRA="x509small"
+    fi
+
+    # expose a bit more compat API without full OPENSSL_EXTRA.
+    AM_CFLAGS="$AM_CFLAGS -DHAVE_CURL"
+
+    # session cache is necessary, but can be small or micro.
+    AM_CFLAGS="$AM_CFLAGS -DSMALL_SESSION_CACHE"
 fi
 
 if test "$ENABLED_PSK" = "no" && test "$ENABLED_LEANPSK" = "no" \
@@ -8431,7 +8616,7 @@ fi
 
 
 # Enable Examples, used to disable examples
-if test "$ENABLED_LINUXKM" = "yes"
+if test "$HAVE_KERNEL_MODE" = "yes"
 then
     ENABLED_EXAMPLES_DEFAULT=no
 else
@@ -8448,7 +8633,7 @@ AS_IF([test "x$ENABLED_CRYPTONLY" = "xyes"], [ENABLED_EXAMPLES="no"])
 
 
 # Enable wolfCrypt test and benchmark
-if test "$ENABLED_LINUXKM" = "yes"
+if test "$HAVE_KERNEL_MODE" = "yes"
 then
     ENABLED_CRYPT_TESTS_DEFAULT=no
 else
@@ -9344,6 +9529,44 @@ then
         AM_CFLAGS="$AM_CFLAGS -DWC_TEST_NO_CRYPTOCB_SW_TEST"
 fi
 
+# Crypto Callbacks Utils (Copy/Free/etc)
+AC_ARG_ENABLE([cryptocbutils],
+    [AS_HELP_STRING([--enable-cryptocbutils@<:@=copy,free,...@:>@],
+                    [Enable crypto callback utilities (default: all)])],
+    [ ENABLED_CRYPTOCB_UTILS=$enableval ],
+    [ ENABLED_CRYPTOCB_UTILS=no ]
+)
+
+if test "$ENABLED_CRYPTOCB_UTILS" != "no"; then
+    if test "$ENABLED_CRYPTOCB" = "no"; then
+        AC_MSG_ERROR([--enable-cryptocbutils requires --enable-cryptocb])
+    fi
+
+    if test "$ENABLED_CRYPTOCB_UTILS" = "yes"; then
+        # Enable all utilities
+        AM_CFLAGS="$AM_CFLAGS -DWOLF_CRYPTO_CB_COPY -DWOLF_CRYPTO_CB_FREE"
+        # Future utilities go here when added
+    else
+        # Parse comma-separated list
+        OIFS="$IFS"
+        IFS=','
+        for util in $ENABLED_CRYPTOCB_UTILS; do
+            case "$util" in
+                copy)
+                    AM_CFLAGS="$AM_CFLAGS -DWOLF_CRYPTO_CB_COPY"
+                    ;;
+                free)
+                    AM_CFLAGS="$AM_CFLAGS -DWOLF_CRYPTO_CB_FREE"
+                    ;;
+                # Add future options here (e.g., malloc, realloc, etc)
+                *)
+                    AC_MSG_ERROR([Unknown cryptocbutils option: $util. Valid options: copy, free])
+                    ;;
+            esac
+        done
+        IFS="$OIFS"
+    fi
+fi
 
 
 # Asynchronous Crypto
@@ -9774,6 +9997,13 @@ AC_ARG_ENABLE([rpk],
     [ ENABLED_RPK=no ]
     )
 
+# Allows dynamically loading the certificate
+AC_ARG_ENABLE([cert-setup-cb],
+    [AS_HELP_STRING([--enable-cert-setup-cb],[Enable support for dynamically loading TLS certificates (default: disabled)])],
+    [ ENABLED_CERT_SETUP_CB=$enableval ],
+    [ ENABLED_CERT_SETUP_CB=no ]
+    )
+
 # check if should run the trusted peer certs test
 # (for now checking both C_FLAGS and C_EXTRA_FLAGS)
 AS_CASE(["$CFLAGS $CPPFLAGS"],[*'WOLFSSL_TRUST_PEER_CERT'*],[ENABLED_TRUSTED_PEER_CERT=yes])
@@ -9804,6 +10034,20 @@ then
         CPPFLAGS=$(printf "%s" "$CPPFLAGS" | sed 's/-DOPENSSL_COMPATIBLE_DEFAULTS//g')
         AM_CFLAGS=$(printf "%s" "$AM_CFLAGS" | sed 's/-DOPENSSL_COMPATIBLE_DEFAULTS//g')
     fi
+fi
+
+# Make function 'wolfSSL_X509_EXTENSION_get_data' return different type of
+# data for each type of extension, as it used to do in the past, instead of
+# always returning the full OCTET STRING of the extension. Use only if you
+# need to keep compatibility with older versions.
+AC_ARG_ENABLE([old-extdata-fmt],
+    [AS_HELP_STRING([--enable-old-extdata-fmt],[Enable old format for extracting extension data (default: disabled)])],
+    [ ENABLED_OLD_EXTDATA_FMT=$enableval ],
+    [ ENABLED_OLD_EXTDATA_FMT=no ]
+    )
+
+if test "x$ENABLED_OLD_EXTDATA_FMT" = "xyes"; then
+  AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_OLD_EXTDATA_FMT"
 fi
 
 # determine if we have key validation mechanism
@@ -9995,12 +10239,12 @@ then
     ENABLED_OPENSSLEXTRA="yes"
 fi
 
-if test "$ENABLED_CURVE25519" != "no" && test "$ENABLED_CURVE25519" != "asm" && test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+if test "$ENABLED_CURVE25519" != "no" && test "$ENABLED_CURVE25519" != "asm" && test "$KERNEL_MODE_DEFAULTS" = "yes"
 then
     ENABLED_CURVE25519=noasm
 fi
 
-if test "$ENABLED_ED25519" != "no" && test "$ENABLED_ED25519" != "asm" && test "$ENABLED_LINUXKM_DEFAULTS" = "yes"
+if test "$ENABLED_ED25519" != "no" && test "$ENABLED_ED25519" != "asm" && test "$KERNEL_MODE_DEFAULTS" = "yes"
 then
     ENABLED_ED25519=noasm
 fi
@@ -10180,6 +10424,9 @@ AS_IF([test "x$ENABLED_DUAL_ALG_CERTS" = "xyes"],
 
 AS_IF([test "x$ENABLED_RPK" = "xyes"],
       [AM_CFLAGS="$AM_CFLAGS -DHAVE_RPK"])
+
+AS_IF([test "x$ENABLED_CERT_SETUP_CB" = "xyes"],
+      [AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_CERT_SETUP_CB"])
 
 AS_IF([test "x$ENABLED_ALTNAMES" = "xyes"],
       [AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ALT_NAMES"])
@@ -10606,11 +10853,29 @@ case $host_os in
                 MINGW_LIB_WARNING="yes"
             fi
         fi ;;
+    *darwin*)
+        # Add required frameworks for static linking on macOS
+        if test "$enable_shared" = "no"; then
+            if test "x$ENABLED_SYS_CA_CERTS" = "xyes"; then
+                PC_LIBS_PRIVATE="$PC_LIBS_PRIVATE -framework CoreFoundation -framework Security"
+            fi
+        fi ;;
 esac
 
 if test "$enable_shared" = "no"; then
     if test "$enable_static" = "yes"; then
         AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_TEST_STATIC_BUILD"
+    fi
+fi
+
+if test "$ENABLED_WOLFGUARD" = "yes"; then
+    if test "$ENABLED_ECC" = "no" ||
+       test "$ENABLED_SHA256" = "no" ||
+       test "$ENABLED_AESGCM" = "no" ||
+       test "$ENABLED_HMAC" = "no" ||
+       test "$ENABLED_RNG" = "no"
+    then
+        AC_MSG_ERROR([--enable-wolfguard requires ECC, SHA256-HMAC, AES-GCM, and RNG.])
     fi
 fi
 
@@ -10677,9 +10942,6 @@ if test "x$ENABLED_LINUXKM" = "xyes"; then
     fi
     if test "$ENABLED_STACKLOG" = "yes"; then
         AC_MSG_ERROR([--enable-stacklog is incompatible with --enable-linuxkm.])
-    fi
-    if test "$ENABLED_COMPKEY" = "yes"; then
-        AC_MSG_ERROR([--enable-compkey is incompatible with --enable-linuxkm.])
     fi
 fi
 
@@ -10770,11 +11032,12 @@ AM_CONDITIONAL([BUILD_FIPS],[test "x$ENABLED_FIPS" = "xyes"])
 AC_SUBST([ENABLED_FIPS])
 AM_CONDITIONAL([BUILD_FIPS_V1],[test "$HAVE_FIPS_VERSION" = 1])
 AM_CONDITIONAL([BUILD_FIPS_V2],[test "$HAVE_FIPS_VERSION" = 2 && test "$HAVE_FIPS_VERSION_MINOR" = 0])
+AM_CONDITIONAL([BUILD_FIPS_V2_PLUS],[test "$HAVE_FIPS_VERSION" -ge 2 ])
 AM_CONDITIONAL([BUILD_FIPS_RAND],[test "$HAVE_FIPS_VERSION" = 2 && test "$HAVE_FIPS_VERSION_MINOR" = 1])
 AM_CONDITIONAL([BUILD_FIPS_V5],[test "$HAVE_FIPS_VERSION" = 5])
-AM_CONDITIONAL([BUILD_FIPS_V6],[test $HAVE_FIPS_VERSION -ge 6])
-AM_CONDITIONAL([BUILD_FIPS_CURRENT],[test "$HAVE_FIPS_VERSION" -ge 2 ])
-    # BUILD_FIPS_CURRENT is for builds after cert 2425.
+AM_CONDITIONAL([BUILD_FIPS_V5_PLUS],[test "$HAVE_FIPS_VERSION" -ge 5])
+AM_CONDITIONAL([BUILD_FIPS_V6],[test $HAVE_FIPS_VERSION = 6])
+AM_CONDITIONAL([BUILD_FIPS_V6_PLUS],[test $HAVE_FIPS_VERSION -ge 6])
 AM_CONDITIONAL([BUILD_SIPHASH],[test "x$ENABLED_SIPHASH" = "xyes" || test "x$ENABLED_USERSETTINGS" = "xyes"])
 AM_CONDITIONAL([BUILD_CMAC],[test "x$ENABLED_CMAC" = "xyes" || test "x$ENABLED_USERSETTINGS" = "xyes"])
 AM_CONDITIONAL([BUILD_SELFTEST],[test "x$ENABLED_SELFTEST" = "xyes"])
@@ -10852,6 +11115,8 @@ AM_CONDITIONAL([BUILD_PKCS7],[test "x$ENABLED_PKCS7" = "xyes" || test "x$ENABLED
 AM_CONDITIONAL([BUILD_SMIME],[test "x$ENABLED_SMIME" = "xyes" || test "x$ENABLED_USERSETTINGS" = "xyes"])
 AM_CONDITIONAL([BUILD_HASHFLAGS],[test "x$ENABLED_HASHFLAGS" = "xyes"])
 AM_CONDITIONAL([BUILD_LINUXKM],[test "$ENABLED_LINUXKM" = "yes"])
+AM_CONDITIONAL([BUILD_BSDKM],[test "$ENABLED_BSDKM" = "yes"])
+AM_CONDITIONAL([BUILD_KERNEL_MODULE],[test "$ENABLED_BSDKM" = "yes" || test "$ENABLED_LINUXKM" = "yes"])
 AM_CONDITIONAL([BUILD_NO_LIBRARY],[test "$ENABLED_NO_LIBRARY" = "yes"])
 AM_CONDITIONAL([BUILD_BENCHMARK],[test "$ENABLED_BENCHMARK" = "yes"])
 AM_CONDITIONAL([BUILD_RC2],[test "x$ENABLED_RC2" = "xyes"])
@@ -10905,6 +11170,7 @@ AC_SUBST([AM_CCASFLAGS])
 AC_SUBST([LIB_ADD])
 AC_SUBST([LIB_STATIC_ADD])
 AC_SUBST([LIBM])
+AC_SUBST([PC_LIBS_PRIVATE])
 
 # FINAL
 AC_CONFIG_FILES([stamp-h], [echo timestamp > stamp-h])
@@ -10918,6 +11184,7 @@ AC_CONFIG_FILES([Makefile
         wolfcrypt/test/test_paths.h
         ])
 AC_CONFIG_FILES([scripts/unit.test],[chmod +x scripts/unit.test])
+AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])
 
 AX_CREATE_GENERIC_CONFIG
 AX_AM_JOBSERVER([yes])
@@ -11106,6 +11373,10 @@ echo "   * LD Flags:                   $LDFLAGS"
 echo "   * LIB Flags:                  $LIB"
 echo "   * Library Suffix:             $LIBSUFFIX"
 
+test "$HAVE_KERNEL_MODE" = "yes" && \
+echo "   * Kernel mode:                $HAVE_KERNEL_MODE" && \
+echo "   * Kernel mode defaults:       $KERNEL_MODE_DEFAULTS" && \
+
 test "$ENABLED_LINUXKM" = "yes" && \
 echo "   * Linux Kernel Build Root:    $KERNEL_ROOT" && \
 echo "   * Linux Kernel Build Arch:    $KERNEL_ARCH" && \
@@ -11120,6 +11391,9 @@ echo "   * FPU enable as flags:        $ASFLAGS_FPU_ENABLE_SIMD_DISABLE" && \
 echo "   * SIMD+FPU disable as flags:  $ASFLAGS_FPUSIMD_DISABLE" && \
 echo "   * SIMD+FPU enable as flags:   $ASFLAGS_FPUSIMD_ENABLE" && \
 echo "   * Linux kernel module PIE:    $ENABLED_LINUXKM_PIE"
+
+test "$ENABLED_BSDKM" = "yes" && \
+echo "   * FreeBSD Kernel Build Root:  $KERNEL_ROOT"
 
 echo "   * Debug enabled:              $ax_enable_debug"
 echo "   * Coverage enabled:           $ax_enable_coverage"
@@ -11355,7 +11629,7 @@ echo "   * Small Stack:                $ENABLED_SMALL_STACK"
 echo "   * Linux Kernel Module:        $ENABLED_LINUXKM"
 
 test "$ENABLED_LINUXKM" = "yes" && \
-echo "   * Linux kernel module bench:  $ENABLED_LINUXKM_BENCHMARKS" && \
+echo "   * Linux kernel module bench:  $ENABLED_KERNEL_BENCHMARKS" && \
 echo "   * Linux kernel alg register:  $ENABLED_LINUXKM_LKCAPI_REGISTER"
 
 echo "   * valgrind unit tests:        $ENABLED_VALGRIND"

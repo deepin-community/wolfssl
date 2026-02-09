@@ -19,8 +19,12 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		--enable-distro \
+		--enable-ech \
+		--enable-hpke \
 		--enable-jni \
+		--enable-jobserver=no \
 		--enable-memcached \
+		--enable-quic \
 		--enable-pkcs11 \
 		--disable-asm \
 		--disable-crl-monitor \
