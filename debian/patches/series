@@ -1,5 +1,5 @@
 multi-arch.patch
 dfsg.patch
 fix-hurd-i386-flags.patch
-disable-jobserver.patch
-handle-debian-files.diff
+handle-debian-files.patch
+configure-ac-rules.patch

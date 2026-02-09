@@ -1,3 +1,16 @@
+wolfssl (5.8.4-1) unstable; urgency=medium
+
+  * New upstream release
+  * Fix for CVE-2025-12888, CVE-2025-11936, CVE-2025-11935, CVE-2025-11934,
+    CVE-2025-11933, CVE-2025-11932, CVE-2025-11931, CVE-2025-12889
+    (Closes: #1121196, #1121197, #1121198, #1121199, #1121200, #1121202,
+    #1121204, #1121205)
+
+  [ Bastian Germann ]
+  * Eliminate unnecessary disable-jobserver.patch
+
+ -- Jacob Barthelmeh <sirkilamole@msn.com>  Mon, 01 Dec 2025 00:23:54 -0700
+
 wolfssl (5.8.2-1.2) unstable; urgency=medium
 
   * Non-maintainer upload.
