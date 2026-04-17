@@ -1,6 +1,6 @@
 /* test_x509.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -23,8 +23,12 @@
 #define WOLFCRYPT_TEST_X509_H
 
 int test_x509_rfc2818_verification_callback(void);
+int test_x509_GetCAByAKID(void);
+int test_x509_set_serialNumber(void);
 
 #define TEST_X509_DECLS                                                        \
-    TEST_DECL_GROUP("x509", test_x509_rfc2818_verification_callback)
+    TEST_DECL_GROUP("x509", test_x509_rfc2818_verification_callback),          \
+    TEST_DECL_GROUP("x509", test_x509_GetCAByAKID),                            \
+    TEST_DECL_GROUP("x509", test_x509_set_serialNumber)
 
 #endif /* WOLFCRYPT_TEST_X509_H */

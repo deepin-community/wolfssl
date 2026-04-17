@@ -1,6 +1,6 @@
 /* port.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -27,7 +27,7 @@
 
 #include <wolfssl/wolfcrypt/cpuid.h>
 #ifdef HAVE_ENTROPY_MEMUSE
-    #include <wolfssl/wolfcrypt/random.h>
+    #include <wolfssl/wolfcrypt/wolfentropy.h>
 #endif
 #ifdef HAVE_ECC
     #include <wolfssl/wolfcrypt/ecc.h>
@@ -68,7 +68,7 @@
 #if defined(WOLFSSL_RENESAS_RX64_HASH)
     #include <wolfssl/wolfcrypt/port/Renesas/renesas-rx64-hw-crypt.h>
 #endif
-#if defined(WOLFSSL_STSAFEA100)
+#ifdef WOLFSSL_STSAFE
     #include <wolfssl/wolfcrypt/port/st/stsafe.h>
 #endif
 
@@ -151,7 +151,11 @@
 #endif
 
 /* prevent multiple mutex initializations */
-static volatile int initRefCount = 0;
+#ifdef WOLFSSL_ATOMIC_OPS
+    wolfSSL_Atomic_Int initRefCount = WOLFSSL_ATOMIC_INITIALIZER(0);
+#else
+    static int initRefCount = 0;
+#endif
 
 #if defined(__aarch64__) && defined(WOLFSSL_ARMASM_BARRIER_DETECT)
 int aarch64_use_sb = 0;
@@ -164,7 +168,8 @@ WOLFSSL_ABI
 int wolfCrypt_Init(void)
 {
     int ret = 0;
-    if (initRefCount == 0) {
+    int my_initRefCount = wolfSSL_Atomic_Int_FetchAdd(&initRefCount, 1);
+    if (my_initRefCount == 0) {
         WOLFSSL_ENTER("wolfCrypt_Init");
 
     #if defined(__aarch64__) && defined(WOLFSSL_ARMASM_BARRIER_DETECT)
@@ -298,8 +303,12 @@ int wolfCrypt_Init(void)
             return ret;
         }
     #endif
-    #if defined(WOLFSSL_STSAFEA100)
-        stsafe_interface_init();
+    #ifdef WOLFSSL_STSAFE
+        ret = stsafe_interface_init();
+        if (ret != 0) {
+            WOLFSSL_MSG("STSAFE init failed");
+            return ret;
+        }
     #endif
     #if defined(WOLFSSL_TROPIC01)
         ret = Tropic01_Init();
@@ -444,8 +453,16 @@ int wolfCrypt_Init(void)
             return ret;
         }
 #endif
+
+        /* increment to 2, to signify successful initialization: */
+        (void)wolfSSL_Atomic_Int_FetchAdd(&initRefCount, 1);
     }
-    initRefCount++;
+    else {
+        if (my_initRefCount < 2) {
+            (void)wolfSSL_Atomic_Int_FetchSub(&initRefCount, 1);
+            ret = BUSY_E;
+        }
+    }
 
     return ret;
 }
@@ -469,12 +486,9 @@ WOLFSSL_ABI
 int wolfCrypt_Cleanup(void)
 {
     int ret = 0;
+    int my_initRefCount = wolfSSL_Atomic_Int_SubFetch(&initRefCount, 1);
 
-    initRefCount--;
-    if (initRefCount < 0)
-        initRefCount = 0;
-
-    if (initRefCount == 0) {
+    if (my_initRefCount == 1) {
         WOLFSSL_ENTER("wolfCrypt_Cleanup");
 
 #ifdef HAVE_ECC
@@ -564,11 +578,18 @@ int wolfCrypt_Cleanup(void)
          * must be freed. */
         wc_MemZero_Free();
     #endif
-    }
+
+        (void)wolfSSL_Atomic_Int_SubFetch(&initRefCount, 1);
 
 #if defined(HAVE_LIBOQS)
-    wolfSSL_liboqsClose();
+        wolfSSL_liboqsClose();
 #endif
+    }
+    else if (my_initRefCount < 0) {
+        (void)wolfSSL_Atomic_Int_AddFetch(&initRefCount, 1);
+        WOLFSSL_MSG("wolfCrypt_Cleanup() called with initRefCount <= 0.");
+        ret = ALREADY_E;
+    }
 
     return ret;
 }
@@ -1359,7 +1380,7 @@ int wolfSSL_Atomic_Uint_CompareExchange(
 }
 
 int wolfSSL_Atomic_Ptr_CompareExchange(
-    void **c, void **expected_ptr, void *new_ptr)
+    void * volatile *c, void **expected_ptr, void *new_ptr)
 {
     uintptr_t exp = (uintptr_t)*expected_ptr;
     int ret = atomic_fcmpset_ptr((uintptr_t *)c, &exp, (uintptr_t)new_ptr);
@@ -1456,15 +1477,23 @@ int wolfSSL_Atomic_Uint_CompareExchange(
 }
 
 int wolfSSL_Atomic_Ptr_CompareExchange(
-    void **c, void **expected_ptr, void *new_ptr)
+    void * volatile *c, void **expected_ptr, void *new_ptr)
 {
     /* use gcc-built-in __atomic_compare_exchange_n(), not
      * atomic_compare_exchange_strong_explicit(), to sidestep _Atomic type
      * requirements.
      */
-    return __atomic_compare_exchange_n(
-        c, expected_ptr, new_ptr, 0 /* weak */,
-        __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE);
+     if (__atomic_compare_exchange_n(
+             c, expected_ptr, new_ptr,
+#ifdef WOLF_C89
+             0 /* weak */,
+#else
+             (_Bool)0 /* weak */,
+#endif
+             __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE))
+         return 1;
+     else
+         return 0;
 }
 
 #elif defined(__GNUC__) && defined(__ATOMIC_RELAXED)
@@ -1551,7 +1580,7 @@ int wolfSSL_Atomic_Uint_CompareExchange(
 }
 
 int wolfSSL_Atomic_Ptr_CompareExchange(
-    void **c, void **expected_ptr, void *new_ptr)
+    void * volatile *c, void **expected_ptr, void *new_ptr)
 {
     return __atomic_compare_exchange_n(
         c, expected_ptr, new_ptr, 0 /* weak */,
@@ -1651,7 +1680,7 @@ int wolfSSL_Atomic_Uint_CompareExchange(
 }
 
 int wolfSSL_Atomic_Ptr_CompareExchange(
-    void ** c, void **expected_ptr, void *new_ptr)
+    void * volatile * c, void **expected_ptr, void *new_ptr)
 {
 #ifdef _WIN64
     LONG64 actual_ptr = InterlockedCompareExchange64(
@@ -1698,6 +1727,7 @@ void wolfSSL_RefWithMutexFree(wolfSSL_RefWithMutex* ref)
     if (wc_FreeMutex(&ref->mutex) != 0) {
         WOLFSSL_MSG("Failed to free mutex of reference counting!");
     }
+    ref->count = 0;
 }
 
 void wolfSSL_RefWithMutexInc(wolfSSL_RefWithMutex* ref, int* err)
@@ -4976,17 +5006,22 @@ char* wolfSSL_strnstr(const char* s1, const char* s2, unsigned int n)
 #endif /* not SINGLE_THREADED */
 
 #if defined(WOLFSSL_LINUXKM) && defined(CONFIG_ARM64) && \
-    defined(WC_PIE_RELOC_TABLES)
+    defined(WC_SYM_RELOC_TABLES)
+#ifndef CONFIG_ARCH_TEGRA
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 noinstr void my__alt_cb_patch_nops(struct alt_instr *alt, __le32 *origptr,
                                    __le32 *updptr, int nr_inst)
 {
     return WC_PIE_INDIRECT_SYM(alt_cb_patch_nops)
         (alt, origptr, updptr, nr_inst);
 }
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0) */
 
 void my__queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
     return WC_PIE_INDIRECT_SYM(queued_spin_lock_slowpath)
         (lock, val);
 }
+#endif
 #endif

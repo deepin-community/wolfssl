@@ -1,6 +1,6 @@
 /* test_dtls.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -47,6 +47,9 @@ int test_dtls_timeout(void);
 int test_dtls_certreq_order(void);
 int test_dtls_memio_wolfio(void);
 int test_dtls_memio_wolfio_stateless(void);
+int test_dtls_mtu_fragment_headroom(void);
+int test_dtls_mtu_split_messages(void);
+int test_dtls13_min_rtx_interval(void);
 
 #define TEST_DTLS_DECLS                                                        \
         TEST_DECL_GROUP("dtls", test_dtls12_basic_connection_id),              \
@@ -73,5 +76,8 @@ int test_dtls_memio_wolfio_stateless(void);
         TEST_DECL_GROUP("dtls", test_dtls_certreq_order),                      \
         TEST_DECL_GROUP("dtls", test_dtls_timeout),                            \
         TEST_DECL_GROUP("dtls", test_dtls_memio_wolfio),                       \
-        TEST_DECL_GROUP("dtls", test_dtls_memio_wolfio_stateless)
+        TEST_DECL_GROUP("dtls", test_dtls_mtu_fragment_headroom),              \
+        TEST_DECL_GROUP("dtls", test_dtls_mtu_split_messages),                 \
+        TEST_DECL_GROUP("dtls", test_dtls_memio_wolfio_stateless),             \
+        TEST_DECL_GROUP("dtls", test_dtls13_min_rtx_interval)
 #endif /* TESTS_API_DTLS_H */

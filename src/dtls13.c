@@ -1,6 +1,6 @@
 /* dtls13.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -93,7 +93,7 @@ typedef struct Dtls13RecordPlaintextHeader {
 #define DTLS13_SEQ_8_LEN 1
 
 /* fixed bits mask to detect unified header  */
-#define DTLS13_FIXED_BITS_MASK (0x111 << 5)
+#define DTLS13_FIXED_BITS_MASK (0x7 << 5)
 /* fixed bits value to detect unified header  */
 #define DTLS13_FIXED_BITS (0x1 << 5)
 /* ConnectionID present bit in the unified header flags */
@@ -110,7 +110,9 @@ typedef struct Dtls13RecordPlaintextHeader {
    supported. */
 #define DTLS13_UNIFIED_HEADER_SIZE 5
 #define DTLS13_MIN_CIPHERTEXT 16
-#define DTLS13_MIN_RTX_INTERVAL 1
+#ifndef DTLS13_MIN_RTX_INTERVAL
+#define DTLS13_MIN_RTX_INTERVAL (DTLS_TIMEOUT_INIT * 1000)
+#endif
 
 #ifndef NO_WOLFSSL_CLIENT
 WOLFSSL_METHOD* wolfDTLSv1_3_client_method_ex(void* heap)
@@ -471,7 +473,7 @@ static int Dtls13SendNow(WOLFSSL* ssl, enum HandShakeType handshakeType)
 
     if (handshakeType == client_hello || handshakeType == hello_retry_request ||
         handshakeType == finished || handshakeType == session_ticket ||
-        handshakeType == session_ticket || handshakeType == key_update ||
+        handshakeType == key_update ||
         (handshakeType == certificate_request &&
             ssl->options.handShakeState == HANDSHAKE_DONE))
         return 1;
@@ -978,8 +980,9 @@ static int Dtls13SendOneFragmentRtx(WOLFSSL* ssl,
 static int Dtls13SendFragmentedInternal(WOLFSSL* ssl)
 {
     int fragLength, rlHeaderLength;
-    int remainingSize, maxFragment;
-    int recordLength;
+    word32 remainingSize;
+    int maxFragment;
+    int recordLength, outputSz;
     byte isEncrypted;
     byte* output;
     int ret;
@@ -987,23 +990,30 @@ static int Dtls13SendFragmentedInternal(WOLFSSL* ssl)
     isEncrypted = Dtls13TypeIsEncrypted(
         (enum HandShakeType)ssl->dtls13FragHandshakeType);
     rlHeaderLength = Dtls13GetRlHeaderLength(ssl, isEncrypted);
-    maxFragment = wolfSSL_GetMaxFragSize(ssl, MAX_RECORD_SIZE);
-
+    maxFragment = wolfssl_local_GetMaxPlaintextSize(ssl);
+    if (maxFragment <= DTLS_HANDSHAKE_HEADER_SZ ||
+            maxFragment > MAX_RECORD_SIZE ||
+            ssl->dtls13FragOffset > ssl->dtls13MessageLength) {
+        Dtls13FreeFragmentsBuffer(ssl);
+        return BUFFER_E;
+    }
     remainingSize = ssl->dtls13MessageLength - ssl->dtls13FragOffset;
 
     while (remainingSize > 0) {
 
-        fragLength = maxFragment - rlHeaderLength - DTLS_HANDSHAKE_HEADER_SZ;
+        fragLength = maxFragment - DTLS_HANDSHAKE_HEADER_SZ;
+        if (fragLength > (int)remainingSize)
+            fragLength = (int)remainingSize;
 
-        recordLength = maxFragment;
-
-        if (fragLength > remainingSize) {
-            fragLength = remainingSize;
-            recordLength =
-                fragLength + rlHeaderLength + DTLS_HANDSHAKE_HEADER_SZ;
+        recordLength = fragLength + rlHeaderLength + DTLS_HANDSHAKE_HEADER_SZ;
+        outputSz = wolfssl_local_GetRecordSize(ssl,
+            fragLength + DTLS_HANDSHAKE_HEADER_SZ, isEncrypted);
+        if (outputSz < 0) {
+            Dtls13FreeFragmentsBuffer(ssl);
+            return recordLength;
         }
 
-        ret = CheckAvailableSize(ssl, recordLength + MAX_MSG_EXTRA);
+        ret = CheckAvailableSize(ssl, outputSz);
         if (ret != 0) {
             Dtls13FreeFragmentsBuffer(ssl);
             return ret;
@@ -1025,7 +1035,7 @@ static int Dtls13SendFragmentedInternal(WOLFSSL* ssl)
 
         ret = Dtls13SendOneFragmentRtx(ssl,
             (enum HandShakeType)ssl->dtls13FragHandshakeType,
-            (word16)recordLength + MAX_MSG_EXTRA, output, (word32)recordLength, 0);
+            (word16)outputSz, output, (word32)recordLength, 0);
         if (ret == WC_NO_ERR_TRACE(WANT_WRITE)) {
             ssl->dtls13FragOffset += fragLength;
             return ret;
@@ -1037,7 +1047,7 @@ static int Dtls13SendFragmentedInternal(WOLFSSL* ssl)
         }
 
         ssl->dtls13FragOffset += fragLength;
-        remainingSize -= fragLength;
+        remainingSize -= (word32)fragLength;
     }
 
     /* we sent all fragments */
@@ -1562,21 +1572,24 @@ static int Dtls13RtxSendBuffered(WOLFSSL* ssl)
     int isLast;
     int sendSz;
 #ifndef NO_ASN_TIME
+#ifdef WOLFSSL_32BIT_MILLI_TIME
     word32 now;
+#else
+    sword64 now;
+#endif
 #endif
     int ret;
 
     WOLFSSL_ENTER("Dtls13RtxSendBuffered");
 
 #ifndef NO_ASN_TIME
-    now = LowResTimer();
+    now = TimeNowInMilliseconds();
     if (now - ssl->dtls13Rtx.lastRtx < DTLS13_MIN_RTX_INTERVAL) {
 #ifdef WOLFSSL_DEBUG_TLS
         WOLFSSL_MSG("Avoid too fast retransmission");
 #endif /* WOLFSSL_DEBUG_TLS */
         return 0;
     }
-
     ssl->dtls13Rtx.lastRtx = now;
 #endif
 
@@ -1836,7 +1849,7 @@ static int _Dtls13HandshakeRecv(WOLFSSL* ssl, byte* input, word32 size,
     isComplete = isFirst && fragLength == messageLength;
 
     if (!isComplete && !Dtls13AcceptFragmented(ssl, (enum HandShakeType)handshakeType)) {
-#ifdef WOLFSSL_DTLS_CH_FRAG
+#if defined(WOLFSSL_DTLS_CH_FRAG) && !defined(NO_WOLFSSL_SERVER)
         byte tls13 = 0;
         /* check if the first CH fragment contains a valid cookie */
         if (ssl->options.dtls13ChFrag && !ssl->options.dtlsStateful &&
@@ -2018,7 +2031,7 @@ int Dtls13HandshakeSend(WOLFSSL* ssl, byte* message, word16 outputSize,
             return ret;
     }
 
-    maxFrag = wolfSSL_GetMaxFragSize(ssl, MAX_RECORD_SIZE);
+    maxFrag = wolfssl_local_GetMaxPlaintextSize(ssl);
     maxLen = length;
 
     if (handshakeType == key_update)

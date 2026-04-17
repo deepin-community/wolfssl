@@ -1,6 +1,6 @@
 /* sha512.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -80,13 +80,7 @@
     #include <wolfssl/wolfcrypt/port/st/stm32.h>
 #endif
 
-#if defined(_MSC_VER)
-    #define SHA512_NOINLINE __declspec(noinline)
-#elif defined(__IAR_SYSTEMS_ICC__) || defined(__GNUC__)
-    #define SHA512_NOINLINE __attribute__((noinline))
-#else
-    #define SHA512_NOINLINE
-#endif
+#define SHA512_NOINLINE WC_NO_INLINE
 
 #ifdef WOLFSSL_SHA512
 
@@ -195,9 +189,6 @@ struct wc_Sha512 {
     int    devId;
     void*  devCtx; /* generic crypto callback context */
 #endif
-#if defined(MAX3266X_SHA_CB) || defined(MAX3266X_SHA)
-    wc_MXC_Sha mxcCtx;
-#endif
 #ifdef WOLFSSL_HASH_FLAGS
     word32 flags; /* enum wc_HashFlags in hash.h */
 #endif
@@ -229,7 +220,7 @@ struct wc_Sha512 {
 
 #endif /* HAVE_FIPS */
 
-#if defined(WOLFSSL_SHA512) || defined(WOLFSSL_SHA384)
+#if defined(WOLFSSL_SHA512)
 
 #ifdef WOLFSSL_ARMASM
 #if !defined(WOLFSSL_ARMASM_NO_NEON)

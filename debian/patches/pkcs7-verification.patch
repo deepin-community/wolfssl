@@ -1,0 +1,30 @@
+Origin: https://github.com/haxtibal/wolfssl/commit/7af95eecfa56155cafa15ee45b0ff02877eee1e8
+From: Tobias Deiminger <tobias.deiminger@posteo.de>
+Date: Fri, 27 Mar 2026 21:48:36 +0100
+Subject: wolfcrypt/src/pkcs7.c: Fix PKCS#7 verification for digestAlgorithm.parameters = NULL
+
+RFC 8017 hardcodes DER serialization samples of DigestInfo, where the
+parameter part is always NULL (05 00) for any hash algorithm. This value
+does therefore *not* depend on SignerInfo.digestAlgorithm.parameters.
+WolfSSL wrongly assumed and implemented such a dependency.
+
+This non-conformance caused an interoperability bug with OpenSSL: A
+signature created with openssl cms (SHA-2) could not be verified in
+WolfSSL. OpenSSL leaves SignerInfo.digestAlgorithm.parameters absent,
+and adds explicit NULL to DigestInfo. WolfSSL saw the absence and
+wrongly inferred DigestInfo would have no explicit NULL - but it has -
+leading to size mismatch.
+---
+--- a/wolfcrypt/src/pkcs7.c
++++ b/wolfcrypt/src/pkcs7.c
+@@ -4771,9 +4771,7 @@ static int wc_PKCS7_BuildSignedDataDigest(wc_PKCS7* pkcs7, byte* signedAttrib,
+         }
+     }
+
+-    /* Set algoID, match whatever was input to match either NULL or absent */
+-    algoIdSz = SetAlgoIDEx(pkcs7->hashOID, algoId, oidHashType,
+-                            0, pkcs7->hashParamsAbsent);
++    algoIdSz = SetAlgoID(pkcs7->hashOID, algoId, oidHashType, 0);
+
+     digestStrSz = SetOctetString(hashSz, digestStr);
+     digestInfoSeqSz = SetSequence(algoIdSz + digestStrSz + hashSz,

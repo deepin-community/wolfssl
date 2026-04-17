@@ -1,6 +1,6 @@
 /* error-crypt.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -307,9 +307,14 @@ enum wolfCrypt_ErrorCodes {
     WC_ACCEL_INHIBIT_E  = -1002, /* Crypto acceleration is currently inhibited */
     BAD_INDEX_E         = -1003, /* Bad index */
     INTERRUPTED_E       = -1004, /* Process interrupted */
+    MLKEM_PUB_HASH_E    = -1005, /* Encoded public key in decapsulation key does
+                                  * not match stored hash*/
+    BUSY_E              = -1006, /* Object is busy */
+    ALREADY_E           = -1007, /* Operation was redundant or preempted */
 
-    WC_SPAN2_LAST_E     = -1004, /* Update to indicate last used error code */
-    WC_LAST_E           = -1004, /* the last code used either here or in
+    SEQ_OVERFLOW_E      = -1008, /* Sequence counter would overflow */
+    WC_SPAN2_LAST_E     = -1008, /* Update to indicate last used error code */
+    WC_LAST_E           = -1008, /* the last code used either here or in
                                   * error-ssl.h */
 
     WC_SPAN2_MIN_CODE_E = -1999, /* Last usable code in span 2 */

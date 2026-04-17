@@ -12,8 +12,10 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  Base64_EncodeEsc@Base 5.2.0
  Base64_Encode_NoNl@Base 5.2.0
  BuildTls13Message@Base 5.5.3
+ CalcHashId@Base 5.9.0
  CheckRunTimeFastMath@Base 5.5.3
  CheckRunTimeSettings@Base 5.2.0
+ DeriveTls13Keys@Base 5.9.0
  DoApplicationData@Base 5.8.2
  Dtls13CheckEpoch@Base 5.8.2
  Dtls13GetEpoch@Base 5.8.2
@@ -37,6 +39,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  FreeNameSubtrees@Base 5.2.0
  GetASNInt@Base 5.6.4
  GetASNTag@Base 5.8.2
+ GetCAByAKID@Base 5.9.0
  GetLength@Base 5.8.2
  GetShortInt@Base 5.8.4
  InitDecodedCert@Base 5.2.0
@@ -44,8 +47,12 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  ParseCert@Base 5.2.0
  SetAlgoID@Base 5.7.0
  SetAsymKeyDer@Base 5.8.4
+ SetLength@Base 5.9.0
  SetName@Base 5.2.0
+ SetSequence@Base 5.9.0
  SetShortInt@Base 5.8.2
+ TLSX_Find@Base 5.9.0
+ TLSX_SNI_GetSize@Base 5.9.0
  ToTraditional@Base 5.2.0
  ToTraditional_ex@Base 5.2.0
  TraditionalEnc@Base 5.2.0
@@ -226,17 +233,26 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_Arc4Init@Base 5.2.0
  wc_Arc4Process@Base 5.2.0
  wc_Arc4SetKey@Base 5.2.0
- wc_Asn1PrintOptions_Init@Base 5.6.4
- wc_Asn1PrintOptions_Set@Base 5.6.4
- wc_Asn1_Init@Base 5.6.4
- wc_Asn1_PrintAll@Base 5.6.4
- wc_Asn1_SetFile@Base 5.6.4
- wc_Asn1_SetOidToNameCb@Base 5.8.2
+ (optional)wc_Asn1PrintOptions_Init@Base 5.6.4
+ (optional)wc_Asn1PrintOptions_Set@Base 5.6.4
+ (optional)wc_Asn1_Init@Base 5.6.4
+ (optional)wc_Asn1_PrintAll@Base 5.6.4
+ (optional)wc_Asn1_SetFile@Base 5.6.4
+ (optional)wc_Asn1_SetOidToNameCb@Base 5.8.2
  wc_AsnSetSkipDateCheck@Base 5.8.2
+ wc_BankRef_Release@Base 5.9.0
  wc_BerToDer@Base 5.2.0
  wc_Blake2bFinal@Base 5.2.0
+ wc_Blake2bHmac@Base 5.9.0
+ wc_Blake2bHmacFinal@Base 5.9.0
+ wc_Blake2bHmacInit@Base 5.9.0
+ wc_Blake2bHmacUpdate@Base 5.9.0
  wc_Blake2bUpdate@Base 5.2.0
  wc_Blake2sFinal@Base 5.2.0
+ wc_Blake2sHmac@Base 5.9.0
+ wc_Blake2sHmacFinal@Base 5.9.0
+ wc_Blake2sHmacInit@Base 5.9.0
+ wc_Blake2sHmacUpdate@Base 5.9.0
  wc_Blake2sUpdate@Base 5.2.0
  wc_BufferKeyDecrypt@Base 5.2.0
  wc_BufferKeyEncrypt@Base 5.2.0
@@ -273,6 +289,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_CreateEncryptedPKCS8Key@Base 5.2.0
  wc_CreatePKCS8Key@Base 5.2.0
  wc_CryptoCb_DefaultDevID@Base 5.5.3
+ wc_CryptoCb_RandomBlock@Base 5.9.0
  wc_CryptoCb_RegisterDevice@Base 5.2.0
  wc_CryptoCb_UnRegisterDevice@Base 5.2.0
  wc_Curve25519KeyDecode@Base 5.8.2
@@ -289,6 +306,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_DecodeEccsiPvt@Base 5.2.0
  wc_DecodeEccsiPvtFromSig@Base 5.2.0
  wc_DecodeEccsiSsk@Base 5.2.0
+ wc_DecodeRsaPssParams@Base 5.9.0
  wc_DecodeSakkeRsk@Base 5.2.0
  wc_DecryptPKCS8Key@Base 5.2.0
  wc_DeleteRsaKey@Base 5.8.2
@@ -383,6 +401,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_EncodeEccsiPvt@Base 5.2.0
  wc_EncodeEccsiSsk@Base 5.2.0
  wc_EncodeObjectId@Base 5.8.2
+ wc_EncodeOcspRequest@Base 5.9.0
  wc_EncodeSakkeRsk@Base 5.2.0
  wc_EncodeSignature@Base 5.2.0
  wc_EncryptPKCS8Key@Base 5.2.0
@@ -419,6 +438,9 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_GetCertDates@Base 5.2.0
  wc_GetDateAsCalendarTime@Base 5.2.0
  wc_GetDateInfo@Base 5.2.0
+ wc_GetDecodedCertIssuer@Base 5.9.0
+ wc_GetDecodedCertSerial@Base 5.9.0
+ wc_GetDecodedCertSubject@Base 5.9.0
  wc_GetErrorString@Base 5.2.0
  wc_GetFASCNFromCert@Base 5.5.3
  wc_GetMutexCb@Base 5.6.4
@@ -456,6 +478,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_HashTypeConvert@Base 5.2.0
  wc_HashUpdate@Base 5.2.0
  wc_Hash_ex@Base 5.7.0
+ wc_HmacCopy@Base 5.9.0
  wc_HmacFinal@Base 5.2.0
  wc_HmacFree@Base 5.2.0
  wc_HmacInit@Base 5.2.0
@@ -506,10 +529,12 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_InitMd5@Base 5.2.0
  wc_InitMd5_ex@Base 5.2.0
  wc_InitMutex@Base 5.2.0
+ wc_InitOcspRequest@Base 5.9.0
  wc_InitRipeMd@Base 5.2.0
  wc_InitRng@Base 5.2.0
  wc_InitRngNonce@Base 5.2.0
  wc_InitRngNonce_ex@Base 5.2.0
+ wc_InitRng_BankRef@Base 5.9.0
  wc_InitRng_ex@Base 5.2.0
  wc_InitRsaKey@Base 5.2.0
  wc_InitRsaKey_Id@Base 5.2.0
@@ -547,6 +572,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_LockMutex_ex@Base 5.2.0
  wc_LockRwLock_Rd@Base 5.6.4
  wc_LockRwLock_Wr@Base 5.6.4
+ wc_MakeCRL_ex@Base 5.9.0
  wc_MakeCert@Base 5.2.0
  wc_MakeCertReq@Base 5.2.0
  wc_MakeCertReq_ex@Base 5.2.0
@@ -579,6 +605,16 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_Md5Update@Base 5.2.0
  wc_NewOCSP@Base 5.8.4
  wc_NewRsaKey@Base 5.8.2
+ wc_OcspRequest_free@Base 5.9.0
+ wc_OcspRequest_new@Base 5.9.0
+ wc_OcspResponder_AddSigner@Base 5.9.0
+ wc_OcspResponder_SetCertStatus@Base 5.9.0
+ wc_OcspResponder_WriteErrorResponse@Base 5.9.0
+ wc_OcspResponder_WriteResponse@Base 5.9.0
+ wc_OcspResponder_free@Base 5.9.0
+ wc_OcspResponder_new@Base 5.9.0
+ wc_OcspResponse_free@Base 5.9.0
+ wc_OcspResponse_new@Base 5.9.0
  wc_OidGetHash@Base 5.2.0
  wc_PBKDF1@Base 5.2.0
  wc_PBKDF1_ex@Base 5.2.0
@@ -649,6 +685,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_PRF@Base 5.2.0
  wc_PRF_TLS@Base 5.2.0
  wc_PRF_TLSv1@Base 5.2.0
+ wc_ParseCRLReasonFromExtensions@Base 5.9.0
  wc_ParseCert@Base 5.2.0
  wc_ParseX509Acert@Base 5.8.2
  wc_PemCertToDer@Base 5.2.0
@@ -669,6 +706,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_Pkcs11_Finalize@Base 5.2.0
  wc_Pkcs11_Initialize@Base 5.2.0
  wc_Pkcs11_Initialize_ex@Base 5.5.4
+ wc_Pkcs11_Initialize_v3@Base 5.9.0
  wc_PkcsPad@Base 5.8.2
  wc_Poly1305Final@Base 5.2.0
  wc_Poly1305SetKey@Base 5.2.0
@@ -889,6 +927,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_Shake256_Free@Base 5.2.0
  wc_Shake256_SqueezeBlocks@Base 5.5.3
  wc_Shake256_Update@Base 5.2.0
+ wc_SignCRL_ex@Base 5.9.0
  wc_SignCert@Base 5.2.0
  wc_SignCert_ex@Base 5.2.0
  wc_SignEccsiHash@Base 5.2.0
@@ -1038,6 +1077,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_ecc_import_raw_ex@Base 5.2.0
  wc_ecc_import_unsigned@Base 5.2.0
  wc_ecc_import_x963@Base 5.2.0
+ wc_ecc_import_x963_ex2@Base 5.9.0
  wc_ecc_import_x963_ex@Base 5.2.0
  wc_ecc_init@Base 5.2.0
  wc_ecc_init_ex@Base 5.2.0
@@ -1141,8 +1181,19 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wc_ed448ph_verify_msg@Base 5.2.0
  wc_export_int@Base 5.2.0
  wc_i2d_PKCS12@Base 5.2.0
+ wc_rng_bank_checkin@Base 5.9.0
+ wc_rng_bank_checkout@Base 5.9.0
+ wc_rng_bank_fini@Base 5.9.0
+ wc_rng_bank_free@Base 5.9.0
+ wc_rng_bank_init@Base 5.9.0
+ wc_rng_bank_inst_reinit@Base 5.9.0
+ wc_rng_bank_new@Base 5.9.0
+ wc_rng_bank_reseed@Base 5.9.0
+ wc_rng_bank_seed@Base 5.9.0
+ wc_rng_bank_set_affinity_handlers@Base 5.9.0
  wc_rng_free@Base 5.2.0
  wc_rng_new@Base 5.2.0
+ wc_rng_new_bankref@Base 5.9.0
  wc_rng_new_ex@Base 5.7.0
  wc_scrypt@Base 5.2.0
  wc_scrypt_ex@Base 5.2.0
@@ -1960,6 +2011,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_EC_POINT_cmp@Base 5.2.0
  wolfSSL_EC_POINT_copy@Base 5.2.0
  wolfSSL_EC_POINT_dump@Base 5.2.0
+ wolfSSL_EC_POINT_dup@Base 5.9.0
  wolfSSL_EC_POINT_free@Base 5.2.0
  wolfSSL_EC_POINT_get_affine_coordinates_GFp@Base 5.2.0
  wolfSSL_EC_POINT_hex2point@Base 5.7.2
@@ -2264,6 +2316,8 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_GENERAL_NAME_set0_othername@Base 5.6.4
  wolfSSL_GENERAL_NAME_set0_value@Base 5.6.4
  wolfSSL_GENERAL_NAME_set_type@Base 5.2.0
+ wolfSSL_GENERAL_SUBTREE_free@Base 5.9.0
+ wolfSSL_GENERAL_SUBTREE_new@Base 5.9.0
  wolfSSL_GetAeadMacSize@Base 5.2.0
  wolfSSL_GetAllocators@Base 5.2.0
  wolfSSL_GetBulkCipher@Base 5.2.0
@@ -2361,6 +2415,9 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_MakeTlsExtendedMasterSecret@Base 5.2.0
  wolfSSL_MakeTlsMasterSecret@Base 5.2.0
  wolfSSL_Malloc@Base 5.2.0
+ wolfSSL_NAME_CONSTRAINTS_check_name@Base 5.9.0
+ wolfSSL_NAME_CONSTRAINTS_free@Base 5.9.0
+ wolfSSL_NAME_CONSTRAINTS_new@Base 5.9.0
  wolfSSL_NCONF_free@Base 5.2.0
  wolfSSL_NCONF_get_number@Base 5.2.0
  wolfSSL_NCONF_get_section@Base 5.2.0
@@ -2804,6 +2861,9 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_X509_ATTRIBUTE_get0_type@Base 5.2.0
  wolfSSL_X509_ATTRIBUTE_new@Base 5.2.0
  wolfSSL_X509_CA_num@Base 5.2.0
+ wolfSSL_X509_CRL_add_dist_point@Base 5.9.0
+ wolfSSL_X509_CRL_add_revoked@Base 5.9.0
+ wolfSSL_X509_CRL_add_revoked_cert@Base 5.9.0
  wolfSSL_X509_CRL_dup@Base 5.7.2
  wolfSSL_X509_CRL_free@Base 5.2.0
  wolfSSL_X509_CRL_get_REVOKED@Base 5.2.0
@@ -2813,7 +2873,18 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_X509_CRL_get_signature@Base 5.5.3
  wolfSSL_X509_CRL_get_signature_nid@Base 5.5.3
  wolfSSL_X509_CRL_get_signature_type@Base 5.5.3
+ wolfSSL_X509_CRL_new@Base 5.9.0
  wolfSSL_X509_CRL_print@Base 5.5.3
+ wolfSSL_X509_CRL_set_dist_points@Base 5.9.0
+ wolfSSL_X509_CRL_set_issuer_name@Base 5.9.0
+ wolfSSL_X509_CRL_set_lastUpdate@Base 5.9.0
+ wolfSSL_X509_CRL_set_nextUpdate@Base 5.9.0
+ wolfSSL_X509_CRL_set_signature@Base 5.9.0
+ wolfSSL_X509_CRL_set_signature_nid@Base 5.9.0
+ wolfSSL_X509_CRL_set_signature_type@Base 5.9.0
+ wolfSSL_X509_CRL_set_version@Base 5.9.0
+ wolfSSL_X509_CRL_sign@Base 5.9.0
+ wolfSSL_X509_CRL_up_ref@Base 5.9.0
  wolfSSL_X509_CRL_verify@Base 5.2.0
  wolfSSL_X509_CRL_version@Base 5.5.3
  wolfSSL_X509_EXTENSION_create_by_OBJ@Base 5.6.4
@@ -2894,8 +2965,11 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_X509_REQ_sign@Base 5.2.0
  wolfSSL_X509_REQ_sign_ctx@Base 5.2.0
  wolfSSL_X509_REQ_verify@Base 5.2.0
+ wolfSSL_X509_REVOKED_free@Base 5.9.0
  wolfSSL_X509_REVOKED_get0_revocation_date@Base 5.5.3
  wolfSSL_X509_REVOKED_get0_serial_number@Base 5.5.3
+ wolfSSL_X509_REVOKED_get_ext@Base 5.9.0
+ wolfSSL_X509_REVOKED_get_ext_count@Base 5.9.0
  wolfSSL_X509_REVOKED_get_serial_number@Base 5.5.3
  wolfSSL_X509_STORE_CTX_cleanup@Base 5.2.0
  wolfSSL_X509_STORE_CTX_free@Base 5.2.0
@@ -2982,8 +3056,10 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_X509_get0_signature@Base 5.2.0
  wolfSSL_X509_get0_subject_key_id@Base 5.8.2
  wolfSSL_X509_get0_tbs_sigalg@Base 5.2.0
+ wolfSSL_X509_get1_ca_issuers@Base 5.9.0
  wolfSSL_X509_get1_ocsp@Base 5.2.0
  wolfSSL_X509_get_X509_PUBKEY@Base 5.2.0
+ wolfSSL_X509_get_aia_overflow@Base 5.9.0
  wolfSSL_X509_get_authorityKeyID@Base 5.2.0
  wolfSSL_X509_get_default_cert_dir@Base 5.2.0
  wolfSSL_X509_get_default_cert_dir_env@Base 5.2.0
@@ -3041,13 +3117,18 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_X509_pubkey_digest@Base 5.2.0
  wolfSSL_X509_set1_notAfter@Base 5.7.2
  wolfSSL_X509_set1_notBefore@Base 5.7.2
+ wolfSSL_X509_set_authority_key_id@Base 5.9.0
+ wolfSSL_X509_set_authority_key_id_ex@Base 5.9.0
  wolfSSL_X509_set_ex_data@Base 5.2.0
  wolfSSL_X509_set_ext@Base 5.2.0
  wolfSSL_X509_set_issuer_name@Base 5.2.0
  wolfSSL_X509_set_notAfter@Base 5.2.0
  wolfSSL_X509_set_notBefore@Base 5.2.0
+ wolfSSL_X509_set_ns_cert_type@Base 5.9.0
  wolfSSL_X509_set_pubkey@Base 5.2.0
  wolfSSL_X509_set_serialNumber@Base 5.2.0
+ wolfSSL_X509_set_subject_key_id@Base 5.9.0
+ wolfSSL_X509_set_subject_key_id_ex@Base 5.9.0
  wolfSSL_X509_set_subject_name@Base 5.2.0
  wolfSSL_X509_set_version@Base 5.2.0
  wolfSSL_X509_sign@Base 5.2.0
@@ -3309,6 +3390,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_i2d_SSL_SESSION@Base 5.2.0
  wolfSSL_i2d_X509@Base 5.2.0
  wolfSSL_i2d_X509_ALGOR@Base 5.8.2
+ wolfSSL_i2d_X509_CRL@Base 5.9.0
  wolfSSL_i2d_X509_NAME@Base 5.2.0
  wolfSSL_i2d_X509_NAME_canon@Base 5.2.0
  wolfSSL_i2d_X509_PUBKEY@Base 5.8.2
@@ -3497,6 +3579,8 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_sk_GENERAL_NAME_pop_free@Base 5.2.0
  wolfSSL_sk_GENERAL_NAME_push@Base 5.2.0
  wolfSSL_sk_GENERAL_NAME_value@Base 5.2.0
+ wolfSSL_sk_GENERAL_SUBTREE_num@Base 5.9.0
+ wolfSSL_sk_GENERAL_SUBTREE_value@Base 5.9.0
  wolfSSL_sk_GENERIC_free@Base 5.2.0
  wolfSSL_sk_GENERIC_pop_free@Base 5.2.0
  wolfSSL_sk_GENERIC_push@Base 5.2.0
@@ -3512,6 +3596,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_sk_WOLFSSL_STRING_value@Base 5.2.0
  wolfSSL_sk_X509_CRL_free@Base 5.2.0
  wolfSSL_sk_X509_CRL_new@Base 5.2.0
+ wolfSSL_sk_X509_CRL_new_null@Base 5.9.0
  wolfSSL_sk_X509_CRL_num@Base 5.2.0
  wolfSSL_sk_X509_CRL_pop_free@Base 5.2.0
  wolfSSL_sk_X509_CRL_push@Base 5.2.0
@@ -3576,6 +3661,7 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_sk_pop@Base 5.8.2
  wolfSSL_sk_pop_free@Base 5.2.0
  wolfSSL_sk_push@Base 5.2.0
+ wolfSSL_sk_push_back_node@Base 5.9.0
  wolfSSL_sk_push_node@Base 5.2.0
  wolfSSL_sk_value@Base 5.2.0
  wolfSSL_state@Base 5.2.0
@@ -3611,6 +3697,8 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfSSL_want_write@Base 5.2.0
  wolfSSL_wolfSCEP@Base 5.2.0
  wolfSSL_write@Base 5.2.0
+ wolfSSL_write_X509_CRL@Base 5.9.0
+ wolfSSL_write_dup@Base 5.9.0
  wolfSSL_write_ex@Base 5.8.2
  wolfSSL_writev@Base 5.2.0
  wolfSSLeay@Base 5.2.0
@@ -3637,3 +3725,5 @@ libwolfssl.so.44 libwolfssl44 #MINVER#
  wolfTLSv1_3_method_ex@Base 5.2.0
  wolfTLSv1_3_server_method@Base 5.2.0
  wolfTLSv1_3_server_method_ex@Base 5.2.0
+ wolfssl_local_MatchBaseName@Base 5.9.0
+ wolfssl_local_MatchIpSubnet@Base 5.9.0

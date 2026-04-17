@@ -3,3 +3,4 @@ dfsg.patch
 fix-hurd-i386-flags.patch
 handle-debian-files.patch
 configure-ac-rules.patch
+pkcs7-verification.patch

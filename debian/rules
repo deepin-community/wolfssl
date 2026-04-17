@@ -25,7 +25,9 @@ override_dh_auto_configure:
 		--enable-jobserver=no \
 		--enable-memcached \
 		--enable-quic \
+		--enable-qt \
 		--enable-pkcs11 \
+		--enable-writedup \
 		--disable-asm \
 		--disable-crl-monitor \
 		--disable-examples \

@@ -1,6 +1,6 @@
 /* test_dtls.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -1487,6 +1487,125 @@ int test_records_span_network_boundaries(void)
 #endif /* defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES) &&                     \
           !defined(WOLFSSL_NO_TLS12) */
 
+int test_dtls_mtu_fragment_headroom(void)
+{
+#if defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES) &&                           \
+    defined(WOLFSSL_DTLS_MTU) && defined(HAVE_AESGCM) && defined(HAVE_ECC) &&  \
+    !defined(WOLFSSL_NO_DTLS_SIZE_CHECK)
+    EXPECT_DECLS;
+    struct {
+        method_provider client_meth;
+        method_provider server_meth;
+        const char* cipher;
+        int use_cid;
+    } params[] = {
+#if defined(WOLFSSL_DTLS13) && defined(WOLFSSL_TLS13)
+        { wolfDTLSv1_3_client_method, wolfDTLSv1_3_server_method,
+          "TLS13-AES128-GCM-SHA256", 0 },
+#ifdef WOLFSSL_DTLS_CID
+        { wolfDTLSv1_3_client_method, wolfDTLSv1_3_server_method,
+          "TLS13-AES128-GCM-SHA256", 1 },
+#endif
+#endif
+#if defined(WOLFSSL_DTLS) && !defined(WOLFSSL_NO_TLS12)
+        { wolfDTLSv1_2_client_method, wolfDTLSv1_2_server_method,
+          "ECDHE-RSA-AES128-GCM-SHA256", 0 },
+#ifdef WOLFSSL_DTLS_CID
+        { wolfDTLSv1_2_client_method, wolfDTLSv1_2_server_method,
+          "ECDHE-RSA-AES128-GCM-SHA256", 1 },
+#endif
+#if !defined(WOLFSSL_AEAD_ONLY) && !defined(NO_AES) && !defined(NO_SHA)
+        { wolfDTLSv1_2_client_method, wolfDTLSv1_2_server_method,
+          "ECDHE-RSA-AES128-SHA", 0 },
+#ifdef WOLFSSL_DTLS_CID
+        { wolfDTLSv1_2_client_method, wolfDTLSv1_2_server_method,
+          "ECDHE-RSA-AES128-SHA", 1 },
+#endif
+#endif
+#endif
+    };
+    size_t i;
+
+    for (i = 0; i < XELEM_CNT(params) && EXPECT_SUCCESS(); i++) {
+        WOLFSSL_CTX *ctx_c = NULL, *ctx_s = NULL;
+        WOLFSSL *ssl_c = NULL, *ssl_s = NULL;
+        struct test_memio_ctx test_ctx;
+        unsigned char payload[33];
+        word16 mtu;
+        int recordLen;
+        int overhead;
+        int ret;
+
+        XMEMSET(&test_ctx, 0, sizeof(test_ctx));
+        XMEMSET(payload, 'A', sizeof(payload));
+
+        ExpectIntEQ(test_memio_setup(&test_ctx, &ctx_c, &ctx_s, &ssl_c, &ssl_s,
+                        params[i].client_meth, params[i].server_meth),
+            0);
+
+        ExpectIntEQ(wolfSSL_set_cipher_list(ssl_c, params[i].cipher), 1);
+        ExpectIntEQ(wolfSSL_set_cipher_list(ssl_s, params[i].cipher), 1);
+
+#ifdef WOLFSSL_DTLS_CID
+        if (params[i].use_cid) {
+            unsigned char cid_c[] = { 0,1,2,3 };
+            unsigned char cid_s[] = { 4,5,6,7,8,9 };
+            ExpectIntEQ(wolfSSL_dtls_cid_use(ssl_c), 1);
+            ExpectIntEQ(wolfSSL_dtls_cid_use(ssl_s), 1);
+            ExpectIntEQ(wolfSSL_dtls_cid_set(ssl_c, cid_s, (int)sizeof(cid_s)),
+                1);
+            ExpectIntEQ(wolfSSL_dtls_cid_set(ssl_s, cid_c, (int)sizeof(cid_c)),
+                1);
+        }
+#endif
+
+        /* Complete handshake and clear any leftover records. */
+        ExpectIntEQ(test_memio_do_handshake(ssl_c, ssl_s, 10, NULL), 0);
+        test_memio_clear_buffer(&test_ctx, 1);
+        test_memio_clear_buffer(&test_ctx, 0);
+
+        /* Measure application-data record overhead. */
+        ExpectIntEQ(wolfSSL_write(ssl_c, payload, 32), 32);
+        ExpectIntEQ(test_ctx.s_msg_count, 1);
+        recordLen = test_ctx.s_len;
+        ExpectIntGT(recordLen, 32);
+        overhead = recordLen - 32;
+
+        /* Reset buffers before MTU-limited send. */
+        test_memio_clear_buffer(&test_ctx, 0);
+        test_memio_clear_buffer(&test_ctx, 1);
+
+        /* Set MTU to overhead + 32 bytes of payload. */
+        mtu = (word16)(overhead + 32);
+        ExpectIntEQ(wolfSSL_dtls_set_mtu(ssl_c, mtu), WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_dtls_set_mtu(ssl_s, mtu), WOLFSSL_SUCCESS);
+
+        /* With the tightened MTU, we should still be able to send 32 bytes. */
+        ExpectIntEQ(wolfSSL_write(ssl_c, payload, 32), 32);
+        ExpectIntEQ(test_ctx.s_msg_count, 1);
+        recordLen = test_ctx.s_len;
+        ExpectIntEQ(recordLen, overhead + 32);
+        ExpectIntLE(recordLen, mtu);
+
+        /* Underestimation: drop MTU by 1 and expect DTLS_SIZE_ERROR. */
+        test_memio_clear_buffer(&test_ctx, 0);
+        test_memio_clear_buffer(&test_ctx, 1);
+        ExpectIntEQ(wolfSSL_dtls_set_mtu(ssl_c, mtu - 1), WOLFSSL_SUCCESS);
+        ret = wolfSSL_write(ssl_c, payload, 32);
+        ExpectIntNE(ret, 32);
+        ExpectIntEQ(wolfSSL_get_error(ssl_c, ret), DTLS_SIZE_ERROR);
+
+        wolfSSL_free(ssl_c);
+        wolfSSL_CTX_free(ctx_c);
+        wolfSSL_free(ssl_s);
+        wolfSSL_CTX_free(ctx_s);
+    }
+    return EXPECT_RESULT();
+#else
+    return TEST_SKIPPED;
+#endif
+}
+
 int test_dtls_rtx_across_epoch_change(void)
 {
     EXPECT_DECLS;
@@ -2254,6 +2373,197 @@ int test_dtls_memio_wolfio_stateless(void)
         wolfSSL_CTX_free(ctx_s);
         wolfSSL_CTX_free(ctx_c);
     }
+#endif
+    return EXPECT_RESULT();
+}
+
+int test_dtls_mtu_split_messages(void)
+{
+#if defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES) && \
+    defined(WOLFSSL_DTLS_MTU) && defined(WOLFSSL_NO_DTLS_SIZE_CHECK) && \
+    defined(HAVE_AESGCM) && defined(HAVE_ECC)
+    EXPECT_DECLS;
+    struct {
+        method_provider client_meth;
+        method_provider server_meth;
+        const char* cipher;
+    } params[] = {
+#if defined(WOLFSSL_DTLS13) && defined(WOLFSSL_TLS13)
+        { wolfDTLSv1_3_client_method, wolfDTLSv1_3_server_method,
+          "TLS13-AES128-GCM-SHA256" },
+#endif
+#if defined(WOLFSSL_DTLS) && !defined(WOLFSSL_NO_TLS12)
+        { wolfDTLSv1_2_client_method, wolfDTLSv1_2_server_method,
+          "ECDHE-RSA-AES128-GCM-SHA256" },
+#if !defined(WOLFSSL_AEAD_ONLY) && !defined(NO_AES) && !defined(NO_SHA)
+        /* Block cipher test */
+        { wolfDTLSv1_2_client_method, wolfDTLSv1_2_server_method,
+          "ECDHE-RSA-AES128-SHA" },
+#endif
+#endif
+    };
+    size_t i;
+
+    for (i = 0; i < XELEM_CNT(params) && EXPECT_SUCCESS(); i++) {
+        WOLFSSL_CTX *ctx_c = NULL, *ctx_s = NULL;
+        WOLFSSL *ssl_c = NULL, *ssl_s = NULL;
+        struct test_memio_ctx test_ctx;
+        /* Payload larger than typical MTU to force splitting */
+        unsigned char payload[200];
+        unsigned char readBuf[200];
+        word16 mtu;
+        int recordLen;
+        int overhead;
+        int totalRead;
+        int ret;
+        int j;
+
+        XMEMSET(&test_ctx, 0, sizeof(test_ctx));
+        XMEMSET(payload, 'A', sizeof(payload));
+
+        ExpectIntEQ(test_memio_setup(&test_ctx, &ctx_c, &ctx_s, &ssl_c, &ssl_s,
+                        params[i].client_meth, params[i].server_meth),
+            0);
+
+        ExpectIntEQ(wolfSSL_set_cipher_list(ssl_c, params[i].cipher), 1);
+        ExpectIntEQ(wolfSSL_set_cipher_list(ssl_s, params[i].cipher), 1);
+
+        /* Complete handshake and clear any leftover records. */
+        ExpectIntEQ(test_memio_do_handshake(ssl_c, ssl_s, 10, NULL), 0);
+        test_memio_clear_buffer(&test_ctx, 1);
+        test_memio_clear_buffer(&test_ctx, 0);
+
+        /* Measure application-data record overhead with small payload. */
+        ExpectIntEQ(wolfSSL_write(ssl_c, payload, 32), 32);
+        ExpectIntEQ(test_ctx.s_msg_count, 1);
+        recordLen = test_ctx.s_len;
+        ExpectIntGT(recordLen, 32);
+        overhead = recordLen - 32;
+
+        /* Reset buffers before MTU-limited send. */
+        test_memio_clear_buffer(&test_ctx, 0);
+        test_memio_clear_buffer(&test_ctx, 1);
+
+        /* Set MTU to allow only ~50 bytes of payload per record.
+         * This ensures a 200-byte payload must be split into multiple msgs. */
+        mtu = (word16)(overhead + 50);
+        ExpectIntEQ(wolfSSL_dtls_set_mtu(ssl_c, mtu), WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_dtls_set_mtu(ssl_s, mtu), WOLFSSL_SUCCESS);
+
+        /* Write payload larger than MTU allows in single record.
+         * With WOLFSSL_NO_DTLS_SIZE_CHECK, this should split into multiple
+         * messages instead of returning DTLS_SIZE_ERROR. */
+        ExpectIntEQ(wolfSSL_write(ssl_c, payload, (int)sizeof(payload)),
+            (int)sizeof(payload));
+
+        /* Verify multiple messages were sent */
+        ExpectIntGT(test_ctx.s_msg_count, 1);
+
+        /* Each record should fit within MTU */
+        for (j = 0; j < test_ctx.s_msg_count && EXPECT_SUCCESS(); j++) {
+            ExpectIntLE(test_ctx.s_msg_sizes[j], mtu);
+        }
+
+        /* Read all data on server side and verify it matches */
+        totalRead = 0;
+        while (totalRead < (int)sizeof(payload) && EXPECT_SUCCESS()) {
+            ret = wolfSSL_read(ssl_s, readBuf + totalRead,
+                (int)sizeof(readBuf) - totalRead);
+            if (ret > 0) {
+                totalRead += ret;
+            }
+            else {
+                break;
+            }
+        }
+        ExpectIntEQ(totalRead, (int)sizeof(payload));
+        ExpectIntEQ(XMEMCMP(payload, readBuf, sizeof(payload)), 0);
+
+        wolfSSL_free(ssl_c);
+        wolfSSL_CTX_free(ctx_c);
+        wolfSSL_free(ssl_s);
+        wolfSSL_CTX_free(ctx_s);
+    }
+    return EXPECT_RESULT();
+#else
+    return TEST_SKIPPED;
+#endif
+}
+
+/* Test DTLS 1.3 minimum retransmission interval. This test calls
+ * wolfSSL_dtls_got_timeout() to simulate timeouts and verify that
+ * retransmissions are spaced at least DTLS13_MIN_RTX_INTERVAL apart.
+ * This tests relies on timing of the retransmission logic so it may be
+ * flaky on very slow systems.
+ */
+int test_dtls13_min_rtx_interval(void)
+{
+    EXPECT_DECLS;
+#if defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES) && \
+    defined(WOLFSSL_DTLS13) && !defined(DTLS13_MIN_RTX_INTERVAL) && \
+    !defined(NO_ASN_TIME)
+    /* We don't want to test when DTLS13_MIN_RTX_INTERVAL is defined because
+     * it may be too low to trigger reliably in a test. The default value is
+     * 1 second which is sufficient for testing here. */
+    WOLFSSL_CTX *ctx_c = NULL, *ctx_s = NULL;
+    WOLFSSL *ssl_c = NULL, *ssl_s = NULL;
+    struct test_memio_ctx test_ctx;
+    int c_msg_count = 0;
+
+    XMEMSET(&test_ctx, 0, sizeof(test_ctx));
+
+    /* Setup DTLS 1.3 contexts */
+    ExpectIntEQ(test_memio_setup(&test_ctx, &ctx_c, &ctx_s, &ssl_c, &ssl_s,
+                    wolfDTLSv1_3_client_method, wolfDTLSv1_3_server_method), 0);
+
+    /* CH0 */
+    ExpectIntEQ(wolfSSL_connect(ssl_c), -1);
+    ExpectIntEQ(wolfSSL_get_error(ssl_c, -1), SSL_ERROR_WANT_READ);
+
+    /* HRR */
+    ExpectIntEQ(wolfSSL_accept(ssl_s), -1);
+    ExpectIntEQ(wolfSSL_get_error(ssl_s, -1), SSL_ERROR_WANT_READ);
+
+    /* CH1 */
+    ExpectIntEQ(wolfSSL_connect(ssl_c), -1);
+    ExpectIntEQ(wolfSSL_get_error(ssl_c, -1), SSL_ERROR_WANT_READ);
+
+    /* SH ... FINISHED */
+    ExpectIntEQ(wolfSSL_accept(ssl_s), -1);
+    ExpectIntEQ(wolfSSL_get_error(ssl_s, -1), SSL_ERROR_WANT_READ);
+
+    /* We should have SH ... FINISHED messages in the buffer */
+    ExpectIntGE(test_ctx.c_msg_count, 2);
+
+    /* Drop everything */
+    test_memio_clear_buffer(&test_ctx, 1);
+
+    /* First timeout. This one should trigger a retransmission */
+    if (wolfSSL_dtls13_use_quick_timeout(ssl_s))
+        ExpectIntEQ(wolfSSL_dtls_got_timeout(ssl_s), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_dtls_got_timeout(ssl_s), WOLFSSL_SUCCESS);
+    /* Save the message count to make sure no new messages are sent */
+    ExpectIntGE(test_ctx.c_msg_count, 2);
+    c_msg_count = test_ctx.c_msg_count;
+
+    /* Second timeout. This one should not trigger a retransmission */
+    if (wolfSSL_dtls13_use_quick_timeout(ssl_s))
+        ExpectIntEQ(wolfSSL_dtls_got_timeout(ssl_s), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_dtls_got_timeout(ssl_s), WOLFSSL_SUCCESS);
+    /* This is the critical check. The message count should not increase
+     * after the second timeout. DTLS13_MIN_RTX_INTERVAL should have blocked
+     * retransmission here. */
+    ExpectIntEQ(c_msg_count, test_ctx.c_msg_count);
+
+    /* Now complete the handshake. We didn't clear the first retransmission
+     * so the handshake should proceed without issues. */
+    ExpectIntEQ(test_memio_do_handshake(ssl_c, ssl_s, 10, NULL), 0);
+
+    /* Cleanup */
+    wolfSSL_free(ssl_c);
+    wolfSSL_CTX_free(ctx_c);
+    wolfSSL_free(ssl_s);
+    wolfSSL_CTX_free(ctx_s);
 #endif
     return EXPECT_RESULT();
 }
