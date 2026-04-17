@@ -1,6 +1,6 @@
 /* hpke.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -101,13 +101,12 @@ static int I2OSP(int n, int w, byte* out)
 {
     int i;
 
-    if (w <= 0 || w > 32) {
+    if (w <= 0 || w > 32 || n < 0) {
         return MP_VAL;
     }
 
     /* if width is less than int max check that n is less than w bytes max */
-    /* if width is greater than int max check that n is less than int max */
-    if ((w < 4 && n > ((1 << (w * 8)) - 1)) || (w >= 4 && n > 0x7fffffff)) {
+    if (w < 4 && n > ((1 << (w * 8)) - 1)) {
         return MP_VAL;
     }
 
@@ -465,10 +464,32 @@ static int wc_HpkeLabeledExtract(Hpke* hpke, byte* suite_id,
 {
     int ret;
     byte* labeled_ikm_p;
+    word32 remaining;
     WC_DECLARE_VAR(labeled_ikm, byte, MAX_HPKE_LABEL_SZ, 0);
 
     if (hpke == NULL) {
         return BAD_FUNC_ARG;
+    }
+
+    /* check that sum of len's will not overflow */
+    remaining = (word32)MAX_HPKE_LABEL_SZ;
+    if ((word32)HPKE_VERSION_STR_LEN > remaining) {
+        return BUFFER_E;
+    }
+    remaining -= (word32)HPKE_VERSION_STR_LEN;
+
+    if (suite_id_len > remaining) {
+        return BUFFER_E;
+    }
+    remaining -= suite_id_len;
+
+    if (label_len > remaining) {
+        return BUFFER_E;
+    }
+    remaining -= label_len;
+
+    if (ikm_len > remaining) {
+        return BUFFER_E;
     }
 
     WC_ALLOC_VAR_EX(labeled_ikm, byte, MAX_HPKE_LABEL_SZ, hpke->heap,
@@ -512,10 +533,32 @@ static int wc_HpkeLabeledExpand(Hpke* hpke, byte* suite_id, word32 suite_id_len,
 {
     int ret;
     byte* labeled_info_p;
+    word32 remaining;
     WC_DECLARE_VAR(labeled_info, byte, MAX_HPKE_LABEL_SZ, 0);
 
     if (hpke == NULL) {
         return BAD_FUNC_ARG;
+    }
+
+    /* check that sum of len's will not overflow */
+    remaining = (word32)MAX_HPKE_LABEL_SZ;
+    if (2U + (word32)HPKE_VERSION_STR_LEN > remaining) {
+        return BUFFER_E;
+    }
+    remaining -= 2U + (word32)HPKE_VERSION_STR_LEN;
+
+    if (suite_id_len > remaining) {
+        return BUFFER_E;
+    }
+    remaining -= suite_id_len;
+
+    if (label_len > remaining) {
+        return BUFFER_E;
+    }
+    remaining -= label_len;
+
+    if (infoSz > remaining) {
+        return BUFFER_E;
     }
 
     WC_ALLOC_VAR_EX(labeled_info, byte, MAX_HPKE_LABEL_SZ, hpke->heap,
@@ -599,12 +642,14 @@ static int wc_HpkeExtractAndExpand( Hpke* hpke, byte* dh, word32 dh_len,
         EAE_PRK_LABEL_STR_LEN, dh, dh_len, eae_prk);
 
     /* expand */
-    if ( ret == 0 )
+    if ( ret == 0 ) {
         ret = wc_HpkeLabeledExpand(hpke, hpke->kem_suite_id,
             sizeof( hpke->kem_suite_id ), eae_prk, hpke->Nh,
             (byte*)SHARED_SECRET_LABEL_STR, SHARED_SECRET_LABEL_STR_LEN,
             kemContext, kem_context_length, hpke->Nsecret, sharedSecret);
+    }
 
+    ForceZero(eae_prk, WC_MAX_DIGEST_SIZE);
     WC_FREE_VAR_EX(eae_prk, hpke->heap, DYNAMIC_TYPE_DIGEST);
 
     return ret;
@@ -693,6 +738,8 @@ static int wc_HpkeKeyScheduleBase(Hpke* hpke, HpkeBaseContext* context,
             1 + 2 * hpke->Nh, hpke->Nh, context->exporter_secret);
     }
 
+    ForceZero(key_schedule_context, 1 + 2 * WC_MAX_DIGEST_SIZE);
+    ForceZero(secret, WC_MAX_DIGEST_SIZE);
     WC_FREE_VAR_EX(key_schedule_context, hpke->heap,
         DYNAMIC_TYPE_TMP_BUFFER);
     WC_FREE_VAR_EX(secret, hpke->heap, DYNAMIC_TYPE_DIGEST);
@@ -796,6 +843,8 @@ static int wc_HpkeEncap(Hpke* hpke, void* ephemeralKey, void* receiverKey,
             hpke->Npk * 2, sharedSecret);
     }
 
+    ForceZero(dh, hpke->Ndh);
+    ForceZero(kemContext, hpke->Npk * 2);
     WC_FREE_VAR_EX(dh, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
     WC_FREE_VAR_EX(kemContext, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
 
@@ -816,6 +865,9 @@ static int wc_HpkeSetupBaseSender(Hpke* hpke, HpkeBaseContext* context,
 #ifdef WOLFSSL_SMALL_STACK
     sharedSecret = (byte*)XMALLOC(hpke->Nsecret, hpke->heap,
         DYNAMIC_TYPE_TMP_BUFFER);
+    if (sharedSecret == NULL) {
+        return MEMORY_E;
+    }
 #endif
 
     /* encap */
@@ -827,6 +879,7 @@ static int wc_HpkeSetupBaseSender(Hpke* hpke, HpkeBaseContext* context,
             infoSz);
     }
 
+    ForceZero(sharedSecret, hpke->Nsecret);
     WC_FREE_VAR_EX(sharedSecret, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
 
     return ret;
@@ -859,6 +912,11 @@ int wc_HpkeContextSealBase(Hpke* hpke, HpkeBaseContext* context,
         plaintext == NULL || out == NULL) {
         return BAD_FUNC_ARG;
     }
+
+    /* RFC 9180 requires error on sequence overflow. */
+    if (context->seq == WC_MAX_SINT_OF(int))
+        return SEQ_OVERFLOW_E;
+
     WC_ALLOC_VAR_EX(aes, Aes, 1, hpke->heap, DYNAMIC_TYPE_AES,
         return MEMORY_E);
     ret = wc_AesInit(aes, hpke->heap, INVALID_DEVID);
@@ -914,6 +972,7 @@ int wc_HpkeSealBase(Hpke* hpke, void* ephemeralKey, void* receiverKey,
 
     PRIVATE_KEY_LOCK();
 
+    ForceZero(context, sizeof(HpkeBaseContext));
     WC_FREE_VAR_EX(context, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
 
     return ret;
@@ -1032,6 +1091,8 @@ static int wc_HpkeDecap(Hpke* hpke, void* receiverKey, const byte* pubKey,
             hpke->Npk * 2, sharedSecret);
     }
 
+    ForceZero(dh, hpke->Ndh);
+    ForceZero(kemContext, hpke->Npk * 2);
     WC_FREE_VAR_EX(dh, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
     WC_FREE_VAR_EX(kemContext, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
 
@@ -1058,6 +1119,7 @@ static int wc_HpkeSetupBaseReceiver(Hpke* hpke, HpkeBaseContext* context,
             infoSz);
     }
 
+    ForceZero(sharedSecret, hpke->Nsecret);
     WC_FREE_VAR_EX(sharedSecret, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
 
     return ret;
@@ -1087,6 +1149,11 @@ int wc_HpkeContextOpenBase(Hpke* hpke, HpkeBaseContext* context, byte* aad,
     if (hpke == NULL) {
         return BAD_FUNC_ARG;
     }
+
+    /* RFC 9180 requires error on sequence overflow. */
+    if (context->seq == WC_MAX_SINT_OF(int))
+        return SEQ_OVERFLOW_E;
+
     XMEMSET(nonce, 0, sizeof(nonce));
     WC_ALLOC_VAR_EX(aes, Aes, 1, hpke->heap, DYNAMIC_TYPE_AES,
         return MEMORY_E);
@@ -1144,6 +1211,7 @@ int wc_HpkeOpenBase(Hpke* hpke, void* receiverKey, const byte* pubKey,
 
     PRIVATE_KEY_LOCK();
 
+    ForceZero(context, sizeof(HpkeBaseContext));
     WC_FREE_VAR_EX(context, hpke->heap, DYNAMIC_TYPE_TMP_BUFFER);
 
     return ret;

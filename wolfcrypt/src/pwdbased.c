@@ -1,6 +1,6 @@
 /* pwdbased.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -152,6 +152,8 @@ int wc_PBKDF1_ex(byte* key, int keyLen, byte* iv, int ivLen,
 
     WC_FREE_VAR_EX(hash, heap, DYNAMIC_TYPE_HASHCTX);
 
+    ForceZero(digest, sizeof(digest));
+
     if (err != 0)
         return err;
 
@@ -294,6 +296,7 @@ int wc_PBKDF2_ex(byte* output, const byte* passwd, int pLen, const byte* salt,
         wc_HmacFree(hmac);
     }
 
+    ForceZero(buffer, (word32)hLen);
     WC_FREE_VAR_EX(buffer, heap, DYNAMIC_TYPE_TMP_BUFFER);
     WC_FREE_VAR_EX(hmac, heap, DYNAMIC_TYPE_HMAC);
 
@@ -827,6 +830,16 @@ int wc_scrypt(byte* output, const byte* passwd, int passLen,
     ret = wc_PBKDF2(output, passwd, passLen, blocks, (int)blocksSz, 1, dkLen,
                     WC_SHA256);
 end:
+    if (blocks != NULL) {
+        ForceZero(blocks, blocksSz);
+    }
+    if (v != NULL) {
+        ForceZero(v, ((size_t)1 << cost) * (size_t)bSz);
+    }
+    if (y != NULL) {
+        ForceZero(y, (size_t)blockSize * 128);
+    }
+
     XFREE(blocks, NULL, DYNAMIC_TYPE_TMP_BUFFER);
     XFREE(v, NULL, DYNAMIC_TYPE_TMP_BUFFER);
     XFREE(y, NULL, DYNAMIC_TYPE_TMP_BUFFER);

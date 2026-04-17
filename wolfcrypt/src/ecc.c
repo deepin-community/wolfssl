@@ -1,6 +1,6 @@
 /* ecc.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -55,7 +55,7 @@ Possible ECC enable options:
  * WOLFSSL_ECC_CURVE_STATIC:                                    default off (on for windows)
  *                      For the ECC curve parameters `ecc_set_type` use fixed
  *                      array for hex string
- * WC_ECC_NONBLOCK:     Enable non-blocking support for sign/verify.
+ * WC_ECC_NONBLOCK:     Enable non-blocking support for sign/verify/keygen/secret.
  *                      Requires SP with WOLFSSL_SP_NONBLOCK
  * WC_ECC_NONBLOCK_ONLY Enable the non-blocking function only, no fall-back to
  *                      normal blocking API's
@@ -1851,7 +1851,6 @@ int wc_ecc_curve_cache_init(void)
 void wc_ecc_curve_cache_free(void)
 {
     int x;
-
     /* free all ECC curve caches */
     for (x = 0; x < (int)ECC_SET_COUNT; x++) {
     #ifdef WOLFSSL_NO_MALLOC
@@ -2703,236 +2702,239 @@ int ecc_projective_dbl_point(ecc_point *P, ecc_point *R, mp_int* a,
 */
 int ecc_map_ex(ecc_point* P, mp_int* modulus, mp_digit mp, int ct)
 {
-   int err = MP_OKAY;
-#if !defined(WOLFSSL_SP_MATH)
-   DECL_MP_INT_SIZE_DYN(t1, mp_bitsused(modulus), MAX_ECC_BITS_USE);
-   DECL_MP_INT_SIZE_DYN(t2, mp_bitsused(modulus), MAX_ECC_BITS_USE);
-#ifdef ALT_ECC_SIZE
-   DECL_MP_INT_SIZE_DYN(rx, mp_bitsused(modulus), MAX_ECC_BITS_USE);
-   DECL_MP_INT_SIZE_DYN(ry, mp_bitsused(modulus), MAX_ECC_BITS_USE);
-   DECL_MP_INT_SIZE_DYN(rz, mp_bitsused(modulus), MAX_ECC_BITS_USE);
-#endif
-   mp_int *x, *y, *z;
+    int err = MP_OKAY;
+    (void)ct;
 
-   (void)ct;
+    if (P == NULL || modulus == NULL){
+        return ECC_BAD_ARG_E;
+    }
+    {
+        #if !defined(WOLFSSL_SP_MATH)
+        DECL_MP_INT_SIZE_DYN(t1, mp_bitsused(modulus), MAX_ECC_BITS_USE);
+        DECL_MP_INT_SIZE_DYN(t2, mp_bitsused(modulus), MAX_ECC_BITS_USE);
+        #ifdef ALT_ECC_SIZE
+        DECL_MP_INT_SIZE_DYN(rx, mp_bitsused(modulus), MAX_ECC_BITS_USE);
+        DECL_MP_INT_SIZE_DYN(ry, mp_bitsused(modulus), MAX_ECC_BITS_USE);
+        DECL_MP_INT_SIZE_DYN(rz, mp_bitsused(modulus), MAX_ECC_BITS_USE);
+        #endif
+        mp_int *x, *y, *z;
 
-   if (P == NULL || modulus == NULL)
-       return ECC_BAD_ARG_E;
+        /* special case for point at infinity */
+        if (mp_cmp_d(P->z, 0) == MP_EQ) {
+            err = mp_set(P->x, 0);
+            if (err == MP_OKAY)
+                err = mp_set(P->y, 0);
+            if (err == MP_OKAY)
+                err = mp_set(P->z, 1);
+            return err;
+        }
 
-   /* special case for point at infinity */
-   if (mp_cmp_d(P->z, 0) == MP_EQ) {
-       err = mp_set(P->x, 0);
-       if (err == MP_OKAY)
-           err = mp_set(P->y, 0);
-       if (err == MP_OKAY)
-           err = mp_set(P->z, 1);
-       return err;
-   }
+        #ifdef WOLFSSL_SMALL_STACK
+        #ifdef WOLFSSL_SMALL_STACK_CACHE
+        if (P->key != NULL) {
+            t1 = P->key->t1;
+            t2 = P->key->t2;
+        #ifdef ALT_ECC_SIZE
+            rx = P->key->x;
+            ry = P->key->y;
+            rz = P->key->z;
+        #endif
+        }
+        else
+        #endif /* WOLFSSL_SMALL_STACK_CACHE */
+        #endif
+        {
+            NEW_MP_INT_SIZE(t1, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
+            NEW_MP_INT_SIZE(t2, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
+        #ifdef MP_INT_SIZE_CHECK_NULL
+            if (t1 == NULL || t2 == NULL) {
+                FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
+                return MEMORY_E;
+            }
+        #endif
+        #ifdef ALT_ECC_SIZE
+            NEW_MP_INT_SIZE(rx, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
+            NEW_MP_INT_SIZE(ry, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
+            NEW_MP_INT_SIZE(rz, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
+        #ifdef MP_INT_SIZE_CHECK_NULL
+            if (rx == NULL || ry == NULL || rz == NULL) {
+                FREE_MP_INT_SIZE(rz, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(ry, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(rx, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
+                return MEMORY_E;
+            }
+        #endif
+        #endif
+        }
 
-#ifdef WOLFSSL_SMALL_STACK
-#ifdef WOLFSSL_SMALL_STACK_CACHE
-   if (P->key != NULL) {
-       t1 = P->key->t1;
-       t2 = P->key->t2;
-   #ifdef ALT_ECC_SIZE
-       rx = P->key->x;
-       ry = P->key->y;
-       rz = P->key->z;
-   #endif
-   }
-   else
-#endif /* WOLFSSL_SMALL_STACK_CACHE */
-#endif
-   {
-      NEW_MP_INT_SIZE(t1, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
-      NEW_MP_INT_SIZE(t2, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
-   #ifdef MP_INT_SIZE_CHECK_NULL
-      if (t1 == NULL || t2 == NULL) {
-         FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
-         FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
-         return MEMORY_E;
-      }
-   #endif
-   #ifdef ALT_ECC_SIZE
-      NEW_MP_INT_SIZE(rx, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
-      NEW_MP_INT_SIZE(ry, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
-      NEW_MP_INT_SIZE(rz, mp_bitsused(modulus), NULL, DYNAMIC_TYPE_ECC);
-   #ifdef MP_INT_SIZE_CHECK_NULL
-      if (rx == NULL || ry == NULL || rz == NULL) {
-          FREE_MP_INT_SIZE(rz, NULL, DYNAMIC_TYPE_ECC);
-          FREE_MP_INT_SIZE(ry, NULL, DYNAMIC_TYPE_ECC);
-          FREE_MP_INT_SIZE(rx, NULL, DYNAMIC_TYPE_ECC);
-          FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
-          FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
-          return MEMORY_E;
-      }
-   #endif
-   #endif
-   }
+        err = INIT_MP_INT_SIZE(t1, mp_bitsused(modulus));
+        if (err == MP_OKAY) {
+            err = INIT_MP_INT_SIZE(t2, mp_bitsused(modulus));
+        }
+        if (err != MP_OKAY) {
+        #ifdef WOLFSSL_SMALL_STACK
+        #ifdef WOLFSSL_SMALL_STACK_CACHE
+            if (P->key == NULL)
+        #endif
+        #endif
+            {
+            #ifdef ALT_ECC_SIZE
+                FREE_MP_INT_SIZE(rz, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(ry, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(rx, NULL, DYNAMIC_TYPE_ECC);
+            #endif
+                FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
+                FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
+            }
+            return MEMORY_E;
+        }
 
-   err = INIT_MP_INT_SIZE(t1, mp_bitsused(modulus));
-   if (err == MP_OKAY) {
-      err = INIT_MP_INT_SIZE(t2, mp_bitsused(modulus));
-   }
-   if (err != MP_OKAY) {
-#ifdef WOLFSSL_SMALL_STACK
-   #ifdef WOLFSSL_SMALL_STACK_CACHE
-      if (P->key == NULL)
-   #endif
-#endif
-      {
-      #ifdef ALT_ECC_SIZE
-         FREE_MP_INT_SIZE(rz, NULL, DYNAMIC_TYPE_ECC);
-         FREE_MP_INT_SIZE(ry, NULL, DYNAMIC_TYPE_ECC);
-         FREE_MP_INT_SIZE(rx, NULL, DYNAMIC_TYPE_ECC);
-      #endif
-         FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
-         FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
-      }
-      return MEMORY_E;
-   }
+        #ifdef ALT_ECC_SIZE
+        /* Use local stack variable */
+        x = rx;
+        y = ry;
+        z = rz;
 
-#ifdef ALT_ECC_SIZE
-   /* Use local stack variable */
-   x = rx;
-   y = ry;
-   z = rz;
+        err = INIT_MP_INT_SIZE(x, mp_bitsused(modulus));
+        if (err == MP_OKAY) {
+            err = INIT_MP_INT_SIZE(y, mp_bitsused(modulus));
+        }
+        if (err == MP_OKAY) {
+            err = INIT_MP_INT_SIZE(z, mp_bitsused(modulus));
+        }
+        if (err != MP_OKAY) {
+            goto done;
+        }
 
-   err = INIT_MP_INT_SIZE(x, mp_bitsused(modulus));
-   if (err == MP_OKAY) {
-      err = INIT_MP_INT_SIZE(y, mp_bitsused(modulus));
-   }
-   if (err == MP_OKAY) {
-      err = INIT_MP_INT_SIZE(z, mp_bitsused(modulus));
-   }
-   if (err != MP_OKAY) {
-      goto done;
-   }
+        if (err == MP_OKAY)
+            err = mp_copy(P->x, x);
+        if (err == MP_OKAY)
+            err = mp_copy(P->y, y);
+        if (err == MP_OKAY)
+            err = mp_copy(P->z, z);
 
-   if (err == MP_OKAY)
-      err = mp_copy(P->x, x);
-   if (err == MP_OKAY)
-      err = mp_copy(P->y, y);
-   if (err == MP_OKAY)
-      err = mp_copy(P->z, z);
+        if (err != MP_OKAY) {
+            goto done;
+        }
+        #else
+        /* Use destination directly */
+        x = P->x;
+        y = P->y;
+        z = P->z;
+        #endif
 
-   if (err != MP_OKAY) {
-      goto done;
-   }
-#else
-   /* Use destination directly */
-   x = P->x;
-   y = P->y;
-   z = P->z;
-#endif
+        /* get 1/z */
+        if (err == MP_OKAY) {
+        #if defined(ECC_TIMING_RESISTANT) && (defined(USE_FAST_MATH) || \
+                        defined(WOLFSSL_SP_MATH) || defined(WOLFSSL_SP_MATH_ALL))
+            if (ct) {
+                err = mp_invmod_mont_ct(z, modulus, t1, mp);
+                if (err == MP_OKAY)
+                    err = mp_montgomery_reduce(t1, modulus, mp);
+            }
+            else
+        #endif
+            {
+                /* first map z back to normal */
+                err = mp_montgomery_reduce(z, modulus, mp);
+                if (err == MP_OKAY)
+                    err = mp_invmod(z, modulus, t1);
+            }
+        }
 
-   /* get 1/z */
-   if (err == MP_OKAY) {
-#if defined(ECC_TIMING_RESISTANT) && (defined(USE_FAST_MATH) || \
-                       defined(WOLFSSL_SP_MATH) || defined(WOLFSSL_SP_MATH_ALL))
-       if (ct) {
-           err = mp_invmod_mont_ct(z, modulus, t1, mp);
-           if (err == MP_OKAY)
-               err = mp_montgomery_reduce(t1, modulus, mp);
-       }
-       else
-#endif
-       {
-           /* first map z back to normal */
-           err = mp_montgomery_reduce(z, modulus, mp);
-           if (err == MP_OKAY)
-               err = mp_invmod(z, modulus, t1);
-       }
-   }
+        /* get 1/z^2 and 1/z^3 */
+        if (err == MP_OKAY)
+            err = mp_sqr(t1, t2);
+        if (err == MP_OKAY)
+            err = mp_mod(t2, modulus, t2);
+        if (err == MP_OKAY)
+            err = mp_mul(t1, t2, t1);
+        if (err == MP_OKAY)
+            err = mp_mod(t1, modulus, t1);
 
-   /* get 1/z^2 and 1/z^3 */
-   if (err == MP_OKAY)
-       err = mp_sqr(t1, t2);
-   if (err == MP_OKAY)
-       err = mp_mod(t2, modulus, t2);
-   if (err == MP_OKAY)
-       err = mp_mul(t1, t2, t1);
-   if (err == MP_OKAY)
-       err = mp_mod(t1, modulus, t1);
+        /* multiply against x/y */
+        if (err == MP_OKAY)
+            err = mp_mul(x, t2, x);
+        if (err == MP_OKAY)
+            err = mp_montgomery_reduce(x, modulus, mp);
+        if (err == MP_OKAY)
+            err = mp_mul(y, t1, y);
+        if (err == MP_OKAY)
+            err = mp_montgomery_reduce(y, modulus, mp);
 
-   /* multiply against x/y */
-   if (err == MP_OKAY)
-       err = mp_mul(x, t2, x);
-   if (err == MP_OKAY)
-       err = mp_montgomery_reduce(x, modulus, mp);
-   if (err == MP_OKAY)
-       err = mp_mul(y, t1, y);
-   if (err == MP_OKAY)
-       err = mp_montgomery_reduce(y, modulus, mp);
+        if (err == MP_OKAY)
+            err = mp_set(z, 1);
 
-   if (err == MP_OKAY)
-       err = mp_set(z, 1);
+        #ifdef ALT_ECC_SIZE
+        /* return result */
+        if (err == MP_OKAY)
+            err = mp_copy(x, P->x);
+        if (err == MP_OKAY)
+            err = mp_copy(y, P->y);
+        if (err == MP_OKAY)
+            err = mp_copy(z, P->z);
 
-#ifdef ALT_ECC_SIZE
-   /* return result */
-   if (err == MP_OKAY)
-      err = mp_copy(x, P->x);
-   if (err == MP_OKAY)
-      err = mp_copy(y, P->y);
-   if (err == MP_OKAY)
-      err = mp_copy(z, P->z);
+        done:
+        #endif
 
-done:
-#endif
+        /* clean up */
+        mp_clear(t1);
+        mp_clear(t2);
 
-   /* clean up */
-   mp_clear(t1);
-   mp_clear(t2);
+        #ifdef WOLFSSL_SMALL_STACK
+        #ifdef WOLFSSL_SMALL_STACK_CACHE
+        if (P->key == NULL)
+        #endif
+        #endif
+        {
+        #ifdef ALT_ECC_SIZE
+            FREE_MP_INT_SIZE(rz, NULL, DYNAMIC_TYPE_ECC);
+            FREE_MP_INT_SIZE(ry, NULL, DYNAMIC_TYPE_ECC);
+            FREE_MP_INT_SIZE(rx, NULL, DYNAMIC_TYPE_ECC);
+        #endif
+            FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
+            FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
+        }
 
-#ifdef WOLFSSL_SMALL_STACK
-#ifdef WOLFSSL_SMALL_STACK_CACHE
-   if (P->key == NULL)
-#endif
-#endif
-   {
-   #ifdef ALT_ECC_SIZE
-      FREE_MP_INT_SIZE(rz, NULL, DYNAMIC_TYPE_ECC);
-      FREE_MP_INT_SIZE(ry, NULL, DYNAMIC_TYPE_ECC);
-      FREE_MP_INT_SIZE(rx, NULL, DYNAMIC_TYPE_ECC);
-   #endif
-      FREE_MP_INT_SIZE(t2, NULL, DYNAMIC_TYPE_ECC);
-      FREE_MP_INT_SIZE(t1, NULL, DYNAMIC_TYPE_ECC);
-   }
+        return err;
+        /* end !defined(WOLFSSL_SP_MATH) */
 
-   return err;
-   /* end !defined(WOLFSSL_SP_MATH) */
+        #else
+        /* begin defined(WOLFSSL_SP_MATH) */
+        if (P == NULL || modulus == NULL)
+            return ECC_BAD_ARG_E;
 
-#else
-   /* begin defined(WOLFSSL_SP_MATH) */
-   if (P == NULL || modulus == NULL)
-       return ECC_BAD_ARG_E;
+        (void)mp;
+        (void)ct;
 
-   (void)mp;
-   (void)ct;
+        #if defined(WOLFSSL_SM2) && defined(WOLFSSL_SP_SM2)
+        if ((mp_count_bits(modulus) == 256) &&
+            (!mp_is_bit_set(modulus, 224))) {
+            err = sp_ecc_map_sm2_256(P->x, P->y, P->z);
+        }
+        #elif !defined(WOLFSSL_SP_NO_256)
+        if (mp_count_bits(modulus) == 256) {
+            err = sp_ecc_map_256(P->x, P->y, P->z);
+        }
+        #elif defined(WOLFSSL_SP_384)
+        if (mp_count_bits(modulus) == 384) {
+            err = sp_ecc_map_384(P->x, P->y, P->z);
+        }
+        #elif defined(WOLFSSL_SP_521)
+        if (mp_count_bits(modulus) == 521) {
+            err = sp_ecc_map_521(P->x, P->y, P->z);
+        }
+        #else
+        err = ECC_BAD_ARG_E;
+        #endif
 
-#if defined(WOLFSSL_SM2) && defined(WOLFSSL_SP_SM2)
-   if ((mp_count_bits(modulus) == 256) && (!mp_is_bit_set(modulus, 224))) {
-       err = sp_ecc_map_sm2_256(P->x, P->y, P->z);
-   }
-#elif !defined(WOLFSSL_SP_NO_256)
-   if (mp_count_bits(modulus) == 256) {
-       err = sp_ecc_map_256(P->x, P->y, P->z);
-   }
-#elif defined(WOLFSSL_SP_384)
-   if (mp_count_bits(modulus) == 384) {
-       err = sp_ecc_map_384(P->x, P->y, P->z);
-   }
-#elif defined(WOLFSSL_SP_521)
-   if (mp_count_bits(modulus) == 521) {
-       err = sp_ecc_map_521(P->x, P->y, P->z);
-   }
-#else
-   err = ECC_BAD_ARG_E;
-#endif
-
-   WOLFSSL_LEAVE("ecc_map_ex (SP Math)", err);
-   return err;
+        WOLFSSL_LEAVE("ecc_map_ex (SP Math)", err);
+    return err;
 #endif /* WOLFSSL_SP_MATH */
+    }
 }
 #endif /* !FREESCALE_LTC_ECC && !WOLFSSL_STM32_PKA */
 
@@ -4968,7 +4970,7 @@ int wc_ecc_shared_secret_gen_sync(ecc_key* private_key, ecc_point* point,
 
 #ifdef HAVE_ECC_CDH
     if (k == k_lcl)
-        mp_clear(k);
+        mp_forcezero(k);
     WC_FREE_VAR_EX(k_lcl, private_key->heap, DYNAMIC_TYPE_ECC_BUFFER);
 #endif
 
@@ -7434,7 +7436,7 @@ int wc_ecc_sign_hash_ex(const byte* in, word32 inlen, WC_RNG* rng,
 
        #ifndef HAVE_CAVIUM_V
            mp_clear(e);
-           mp_clear(k);
+           mp_forcezero(k);
        #endif
            wc_ecc_curve_free(curve);
            FREE_CURVE_SPECS();
@@ -7884,9 +7886,24 @@ void wc_ecc_free_curve(const ecc_set_type* curve, void* heap)
 WOLFSSL_ABI
 int wc_ecc_free(ecc_key* key)
 {
+#if defined(WOLF_CRYPTO_CB) && defined(WOLF_CRYPTO_CB_FREE)
+    int ret = 0;
+#endif
+
     if (key == NULL) {
         return 0;
     }
+
+#if defined(WOLF_CRYPTO_CB) && defined(WOLF_CRYPTO_CB_FREE)
+    if (key->devId != INVALID_DEVID) {
+        ret = wc_CryptoCb_Free(key->devId, WC_ALGO_TYPE_PK,
+                         WC_PK_TYPE_EC_KEYGEN, 0, key);
+        if (ret != WC_NO_ERR_TRACE(CRYPTOCB_UNAVAILABLE))
+            return ret;
+        /* fall-through to software cleanup */
+    }
+    (void)ret;
+#endif
 
 #if defined(WOLFSSL_ECDSA_SET_K) || defined(WOLFSSL_ECDSA_SET_K_ONE_LOOP) || \
     defined(WOLFSSL_ECDSA_DETERMINISTIC_K) || \
@@ -9470,6 +9487,13 @@ int wc_ecc_import_point_der_ex(const byte* in, word32 inLen,
     keysize = (int)(inLen>>1);
 #endif
 
+    /* sanity check that x coordinate is expected size */
+    if (err == MP_OKAY) {
+        if (keysize != ecc_sets[curve_idx].size) {
+            err = ECC_BAD_ARG_E;
+        }
+    }
+
     /* read data */
     if (err == MP_OKAY)
         err = mp_read_unsigned_bin(point->x, in, (word32)keysize);
@@ -9487,7 +9511,7 @@ int wc_ecc_import_point_der_ex(const byte* in, word32 inLen,
         #if defined(WOLFSSL_SM2) && defined(WOLFSSL_SP_SM2)
         if (curve_idx != ECC_CUSTOM_IDX &&
                                       ecc_sets[curve_idx].id == ECC_SM2P256V1) {
-            sp_ecc_uncompress_sm2_256(point->x, pointType, point->y);
+            err = sp_ecc_uncompress_sm2_256(point->x, pointType, point->y);
         }
         else
         #endif
@@ -10633,8 +10657,8 @@ int wc_ecc_check_key(ecc_key* key)
 
 #ifdef HAVE_ECC_KEY_IMPORT
 /* import public ECC key in ANSI X9.63 format */
-int wc_ecc_import_x963_ex(const byte* in, word32 inLen, ecc_key* key,
-                          int curve_id)
+int wc_ecc_import_x963_ex2(const byte* in, word32 inLen, ecc_key* key,
+                           int curve_id, int untrusted)
 {
     int err = MP_OKAY;
 #ifdef HAVE_COMP_KEY
@@ -10718,7 +10742,10 @@ int wc_ecc_import_x963_ex(const byte* in, word32 inLen, ecc_key* key,
             XMEMCPY(key->pubkey_raw, (byte*)in, inLen);
     }
 #elif defined(WOLFSSL_KCAPI_ECC)
-    XMEMCPY(key->pubkey_raw, (byte*)in, inLen);
+    if (inLen <= (word32)sizeof(key->pubkey_raw))
+        XMEMCPY(key->pubkey_raw, (byte*)in, inLen);
+    else
+        err = BAD_FUNC_ARG;
 #endif
 
     if (err == MP_OKAY) {
@@ -10844,7 +10871,7 @@ int wc_ecc_import_x963_ex(const byte* in, word32 inLen, ecc_key* key,
     #endif
     #if defined(WOLFSSL_SM2) && defined(WOLFSSL_SP_SM2)
         if (key->dp->id == ECC_SM2P256V1) {
-            sp_ecc_uncompress_sm2_256(key->pubkey.x, pointType, key->pubkey.y);
+            err = sp_ecc_uncompress_sm2_256(key->pubkey.x, pointType, key->pubkey.y);
         }
         else
     #endif
@@ -10919,6 +10946,25 @@ int wc_ecc_import_x963_ex(const byte* in, word32 inLen, ecc_key* key,
     if (err == MP_OKAY)
         err = wc_ecc_check_key(key);
 #endif
+#if (!defined(WOLFSSL_VALIDATE_ECC_IMPORT) || \
+     !defined(HAVE_ECC_CHECK_PUBKEY_ORDER)) && \
+     !defined(WOLFSSL_ATECC508A) && !defined(WOLFSSL_ATECC608A) && \
+     !defined(WOLFSSL_CRYPTOCELL) && \
+     (!defined(WOLF_CRYPTO_CB_ONLY_ECC) || defined(WOLFSSL_QNX_CAAM) || \
+       defined(WOLFSSL_IMXRT1170_CAAM))
+    if (untrusted) {
+        /* Only do quick checks. */
+        if ((err == MP_OKAY) && wc_ecc_point_is_at_infinity(&key->pubkey)) {
+            err = ECC_INF_E;
+        }
+    #ifdef USE_ECC_B_PARAM
+        if ((err == MP_OKAY) && (key->idx != ECC_CUSTOM_IDX))  {
+            err = wc_ecc_point_is_on_curve(&key->pubkey, key->idx);
+        }
+    #endif /* USE_ECC_B_PARAM */
+    }
+#endif
+    (void)untrusted;
 
 #ifdef WOLFSSL_MAXQ10XX_CRYPTO
     if (err == MP_OKAY) {
@@ -10930,12 +10976,19 @@ int wc_ecc_import_x963_ex(const byte* in, word32 inLen, ecc_key* key,
         mp_clear(key->pubkey.x);
         mp_clear(key->pubkey.y);
         mp_clear(key->pubkey.z);
-        mp_clear(key->k);
+        mp_forcezero(key->k);
     }
 
     RESTORE_VECTOR_REGISTERS();
 
     return err;
+}
+
+/* import public ECC key in ANSI X9.63 format */
+int wc_ecc_import_x963_ex(const byte* in, word32 inLen, ecc_key* key,
+                          int curve_id)
+{
+    return wc_ecc_import_x963_ex2(in, inLen, key, curve_id, 0);
 }
 
 WOLFSSL_ABI
@@ -11706,7 +11759,7 @@ static int wc_ecc_import_raw_private(ecc_key* key, const char* qx,
         mp_clear(key->pubkey.x);
         mp_clear(key->pubkey.y);
         mp_clear(key->pubkey.z);
-        mp_clear(key->k);
+        mp_forcezero(key->k);
 #if defined(WOLFSSL_XILINX_CRYPT_VERSAL)
         ForceZero(key->keyRaw, sizeof(key->keyRaw));
 #endif
@@ -13211,7 +13264,7 @@ int ecc_mul2add(ecc_point* A, mp_int* kA,
             err = add_entry(idx1, A);
          }
       }
-      if (err == MP_OKAY && idx1 != -1) {
+      if (err == MP_OKAY && idx1 != -1 && fp_cache[idx1].lru_count < (INT_MAX-1)) {
          /* increment LRU */
          ++(fp_cache[idx1].lru_count);
       }
@@ -13228,7 +13281,7 @@ int ecc_mul2add(ecc_point* A, mp_int* kA,
          }
       }
 
-      if (err == MP_OKAY && idx2 != -1) {
+      if (err == MP_OKAY && idx2 != -1 && fp_cache[idx2].lru_count < (INT_MAX-1)) {
          /* increment LRU */
          ++(fp_cache[idx2].lru_count);
       }
@@ -13365,7 +13418,7 @@ int wc_ecc_mulmod_ex(const mp_int* k, ecc_point *G, ecc_point *R, mp_int* a,
          if (idx >= 0)
             err = add_entry(idx, G);
       }
-      if (err == MP_OKAY && idx >= 0) {
+      if (err == MP_OKAY && idx >= 0 && fp_cache[idx].lru_count < (INT_MAX-1)) {
          /* increment LRU */
          ++(fp_cache[idx].lru_count);
       }
@@ -13536,7 +13589,7 @@ int wc_ecc_mulmod_ex2(const mp_int* k, ecc_point *G, ecc_point *R, mp_int* a,
          if (idx >= 0)
             err = add_entry(idx, G);
       }
-      if (err == MP_OKAY && idx >= 0) {
+      if (err == MP_OKAY && idx >= 0 && fp_cache[idx].lru_count < (INT_MAX-1)) {
          /* increment LRU */
          ++(fp_cache[idx].lru_count);
       }
@@ -14448,6 +14501,8 @@ int wc_ecc_encrypt_ex(ecc_key* privKey, ecc_key* pubKey, const byte* msg,
 
     RESTORE_VECTOR_REGISTERS();
 
+    ForceZero(sharedSecret, sharedSz);
+    ForceZero(keys, (word32)keysLen);
     WC_FREE_VAR_EX(sharedSecret, ctx->heap, DYNAMIC_TYPE_ECC_BUFFER);
     WC_FREE_VAR_EX(keys, ctx->heap, DYNAMIC_TYPE_ECC_BUFFER);
 
@@ -14742,8 +14797,8 @@ int wc_ecc_decrypt(ecc_key* privKey, ecc_key* pubKey, const byte* msg,
 
                     if (ret == 0)
                         ret = wc_HmacFinal(hmac, verify);
-                    if ((ret == 0) && (XMEMCMP(verify, msg + msgSz - digestSz,
-                                                             digestSz) != 0)) {
+                    if ((ret == 0) && (ConstantCompare(verify, msg + msgSz - digestSz,
+                                                             (int)digestSz) != 0)) {
                         ret = HASH_TYPE_E;
                         WOLFSSL_MSG("ECC Decrypt HMAC Check failed!");
                     }
@@ -14846,6 +14901,8 @@ int wc_ecc_decrypt(ecc_key* privKey, ecc_key* pubKey, const byte* msg,
     if (pubKey == peerKey)
         wc_ecc_free(peerKey);
 #endif
+    ForceZero(sharedSecret, sharedSz);
+    ForceZero(keys, (word32)keysLen);
 #ifdef WOLFSSL_SMALL_STACK
 #ifndef WOLFSSL_ECIES_OLD
     XFREE(peerKey, ctx->heap, DYNAMIC_TYPE_ECC_BUFFER);
@@ -15624,12 +15681,18 @@ int wc_ecc_get_key_id(ecc_key* key, word32* keyId)
 /* Enable ECC support for non-blocking operations */
 int wc_ecc_set_nonblock(ecc_key *key, ecc_nb_ctx_t* ctx)
 {
-    if (key) {
-        if (ctx) {
-            XMEMSET(ctx, 0, sizeof(ecc_nb_ctx_t));
-        }
-        key->nb_ctx = ctx;
+    if (key == NULL) {
+        return BAD_FUNC_ARG;
     }
+    /* If a different context is already set, clear it before replacing.
+     * The caller is responsible for freeing any heap-allocated context. */
+    if (key->nb_ctx != NULL && key->nb_ctx != ctx) {
+        XMEMSET(key->nb_ctx, 0, sizeof(ecc_nb_ctx_t));
+    }
+    if (ctx != NULL) {
+        XMEMSET(ctx, 0, sizeof(ecc_nb_ctx_t));
+    }
+    key->nb_ctx = ctx;
     return 0;
 }
 #endif /* WC_ECC_NONBLOCK */

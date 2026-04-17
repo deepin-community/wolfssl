@@ -1,6 +1,6 @@
 /* test_pkcs12.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -26,9 +26,11 @@
 
 int test_wc_i2d_PKCS12(void);
 int test_wc_PKCS12_create(void);
+int test_wc_d2i_PKCS12_bad_mac_salt(void);
 
 #define TEST_PKCS12_DECLS                                       \
     TEST_DECL_GROUP("pkcs12", test_wc_i2d_PKCS12),              \
-    TEST_DECL_GROUP("pkcs12", test_wc_PKCS12_create)
+    TEST_DECL_GROUP("pkcs12", test_wc_PKCS12_create),            \
+    TEST_DECL_GROUP("pkcs12", test_wc_d2i_PKCS12_bad_mac_salt)
 
 #endif /* WOLFCRYPT_TEST_PKCS12_H */

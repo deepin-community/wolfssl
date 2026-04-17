@@ -2,11 +2,11 @@ Index: wolfssl-5.8.4/configure.ac
 ===================================================================
 --- wolfssl-5.8.4.orig/configure.ac
 +++ wolfssl-5.8.4/configure.ac
-@@ -11182,7 +11182,6 @@ AC_CONFIG_FILES([Makefile
-         wolfcrypt/test/test_paths.h
+@@ -11182,7 +11182,6 @@ AC_CONFIG_FILES([cmake/wolfssl-config.cmake:cmake/Config.cmake.in
          ])
+ ])
  AC_CONFIG_FILES([scripts/unit.test],[chmod +x scripts/unit.test])
 -AC_CONFIG_FILES([debian/rules],[chmod +x debian/rules])
- 
+
  AX_CREATE_GENERIC_CONFIG
  AX_AM_JOBSERVER([yes])

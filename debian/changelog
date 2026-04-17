@@ -1,3 +1,18 @@
+wolfssl (5.9.0-0.2) unstable; urgency=medium
+
+  * Non-maintainer upload
+  * Fix PKCS#7 verification (Closes: #1132097)
+
+ -- Bastian Germann <bage@debian.org>  Fri, 27 Mar 2026 23:26:21 +0100
+
+wolfssl (5.9.0-0.1) unstable; urgency=medium
+
+  * Non-maintainer upload
+  * New upstream release
+  * Enable writedup (Closes: #1115501)
+
+ -- Bastian Germann <bage@debian.org>  Fri, 20 Mar 2026 09:39:13 +0100
+
 wolfssl (5.8.4-1) unstable; urgency=medium
 
   * New upstream release
@@ -142,7 +157,7 @@ wolfssl (5.5.4-2) unstable; urgency=medium
 
   * Clarify in README.Debian and in the package descriptions that wolfssl is
     only for packages that cannot use openssl. (Closes: #1023697)
-  * Drop d/salsa-ci.yml. (Closes: #1030634) 
+  * Drop d/salsa-ci.yml. (Closes: #1030634)
 
  -- Felix Lechner <felix.lechner@lease-up.com>  Mon, 06 Feb 2023 06:41:53 -0800
 

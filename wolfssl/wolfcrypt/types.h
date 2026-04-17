@@ -1,6 +1,6 @@
 /* types.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -125,7 +125,7 @@ typedef const char wcchar[];
     /* if a version is available, pivot on the version, otherwise guess it's
         * disallowed, subject to override.
         */
-    #if !defined(WOLF_C89) && (!defined(__STDC__)                \
+    #if !defined(WOLF_C89) && !defined(_MSC_VER) && (!defined(__STDC__) \
         || (!defined(__STDC_VERSION__) && !defined(__cplusplus)) \
         || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201101L)) \
         || (defined(__cplusplus) && (__cplusplus >= 201103L)))
@@ -307,8 +307,11 @@ typedef const char wcchar[];
 #endif
 
 #if defined(WORD64_AVAILABLE) && !defined(WC_16BIT_CPU)
-    /* These platforms have 64-bit CPU registers.  */
-    #if (defined(__alpha__) || defined(__ia64__) || defined(_ARCH_PPC64) || \
+    #if defined(WC_64BIT_CPU)
+        /* explicitly configured for 64 bit. */
+    #elif defined(WC_32BIT_CPU)
+        /* explicitly configured for 32 bit. */
+    #elif (defined(__alpha__) || defined(__ia64__) || defined(_ARCH_PPC64) || \
         (defined(__mips64) && \
          ((defined(_ABI64) && (_MIPS_SIM == _ABI64)) || \
           (defined(_ABIO64) && (_MIPS_SIM == _ABIO64)))) || \
@@ -317,6 +320,7 @@ typedef const char wcchar[];
         (defined(__riscv_xlen) && (__riscv_xlen == 64)) || defined(_M_ARM64) || \
         defined(__aarch64__) || defined(__ppc64__) || \
         (defined(__DCC__) && (defined(__LP64) || defined(__LP64__)))
+        /* The above platforms have 64-bit CPU registers. */
         #define WC_64BIT_CPU
     #elif (defined(sun) || defined(__sun)) && \
           (defined(LP64) || defined(_LP64))
@@ -876,6 +880,13 @@ enum {
                 ONFAIL;                                                    \
             }                                                              \
         } while (0)
+    #define WC_CALLOC_VAR_EX(VAR_NAME, VAR_TYPE, VAR_SIZE, HEAP, TY, ONFAIL)\
+        do {                                                               \
+            WC_ALLOC_VAR_EX(VAR_NAME, VAR_TYPE, VAR_SIZE, HEAP, TY, ONFAIL);\
+            if ((VAR_NAME) != NULL) {                                      \
+                XMEMSET(VAR_NAME, 0, sizeof(VAR_TYPE) * (VAR_SIZE));       \
+            }                                                              \
+        } while (0)
     #define WC_CALLOC_VAR(VAR_NAME, VAR_TYPE, VAR_SIZE, HEAP)    \
         do {                                                     \
             WC_ALLOC_VAR(VAR_NAME, VAR_TYPE, VAR_SIZE, HEAP);    \
@@ -905,7 +916,9 @@ enum {
         WC_DO_NOTHING
     #define WC_VAR_OK(VAR_NAME) 1
     #define WC_CALLOC_VAR(VAR_NAME, VAR_TYPE, VAR_SIZE, HEAP)        \
-        XMEMSET(VAR_NAME, 0, sizeof(var))
+        XMEMSET(VAR_NAME, 0, sizeof(VAR_TYPE))
+    #define WC_CALLOC_VAR_EX(VAR_NAME, VAR_TYPE, VAR_SIZE, HEAP, TY, ONFAIL)\
+        XMEMSET(VAR_NAME, 0, sizeof(VAR_TYPE))
     #define WC_FREE_VAR(VAR_NAME, HEAP) WC_DO_NOTHING \
         /* nothing to free, its stack */
     #define WC_FREE_VAR_EX(VAR_NAME, HEAP, TYPE) WC_DO_NOTHING
@@ -1233,7 +1246,7 @@ binding for XSNPRINTF
 #ifndef WC_OFFSETOF
     #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ >= 4))
         #define WC_OFFSETOF(type, field) __builtin_offsetof(type, field)
-    #elif defined(__WATCOMC__)
+    #elif defined(__WATCOMC__) || defined(__IAR_SYSTEMS_ICC__)
         #include <stddef.h>
         #define WC_OFFSETOF    offsetof
     #else
@@ -1348,6 +1361,9 @@ enum {
     DYNAMIC_TYPE_X509_ACERT   = 103,
     DYNAMIC_TYPE_OS_BUF       = 104,
     DYNAMIC_TYPE_ASCON        = 105,
+    DYNAMIC_TYPE_SHA          = 106,
+    DYNAMIC_TYPE_SLHDSA       = 107,
+    DYNAMIC_TYPE_OCSP_RESPONSE = 108,
     DYNAMIC_TYPE_SNIFFER_SERVER       = 1000,
     DYNAMIC_TYPE_SNIFFER_SESSION      = 1001,
     DYNAMIC_TYPE_SNIFFER_PB           = 1002,
@@ -1426,7 +1442,19 @@ enum wc_HashType {
     WC_HASH_TYPE_SHA3_512 = 13,
     WC_HASH_TYPE_BLAKE2B = 14,
     WC_HASH_TYPE_BLAKE2S = 19,
+#ifdef WOLFSSL_SHAKE128
+    WC_HASH_TYPE_SHAKE128 = 20,
+#endif
+#ifdef WOLFSSL_SHAKE256
+    WC_HASH_TYPE_SHAKE256 = 21,
+#endif
+#if defined(WOLFSSL_SHAKE256)
+    WC_HASH_TYPE_MAX = WC_HASH_TYPE_SHAKE256,
+#elif defined(WOLFSSL_SHAKE128)
+    WC_HASH_TYPE_MAX = WC_HASH_TYPE_SHAKE128,
+#else
     WC_HASH_TYPE_MAX = WC_HASH_TYPE_BLAKE2S,
+#endif
     #ifndef WOLFSSL_NOSHA512_224
         #define WOLFSSL_NOSHA512_224
     #endif
@@ -2030,6 +2058,33 @@ WOLFSSL_API word32 CheckRunTimeSettings(void);
     #define WC_NORETURN
 #endif
 
+#ifdef __has_attribute
+#if __has_attribute(nonnull)
+    #ifndef WC_ARG_NOT_NULL
+        #define WC_ARG_NOT_NULL(a) __attribute__((nonnull(a)))
+    #endif
+    #ifndef WC_ARGS_NOT_NULL
+        /* double-parenthesize, a la WC_ARGS_NOT_NULL((1, 2)) -- this approach
+         * maintains compatibility with WOLF_NO_VARIADIC_MACROS.
+         */
+        #define WC_ARGS_NOT_NULL(p_a) __attribute__((nonnull p_a))
+    #endif
+    #ifndef WC_ALL_ARGS_NOT_NULL
+        #define WC_ALL_ARGS_NOT_NULL __attribute__((nonnull))
+    #endif
+#endif /* __has_attribute(nonnull) */
+#endif /* defined(__has_attribute) */
+
+#ifndef WC_ARG_NOT_NULL
+    #define WC_ARG_NOT_NULL(a) /* null expansion */
+#endif
+#ifndef WC_ARGS_NOT_NULL
+    #define WC_ARGS_NOT_NULL(p_a) /* null expansion */
+#endif
+#ifndef WC_ALL_ARGS_NOT_NULL
+    #define WC_ALL_ARGS_NOT_NULL
+#endif
+
 #if defined(WOLFSSL_KEY_GEN) || defined(HAVE_COMP_KEY) || \
     defined(WOLFSSL_DEBUG_MATH) || defined(DEBUG_WOLFSSL) || \
     defined(WOLFSSL_PUBLIC_MP) || defined(OPENSSL_EXTRA) || \
@@ -2080,7 +2135,9 @@ WOLFSSL_API word32 CheckRunTimeSettings(void);
     #define wc_static_assert(expr) struct wc_static_assert_dummy_struct
     #define wc_static_assert2(expr, msg) wc_static_assert(expr)
 #elif !defined(wc_static_assert)
-    #if defined(WOLFSSL_HAVE_ASSERT_H) && !defined(WOLFSSL_NO_ASSERT_H)
+    #if !defined(WOLFSSL_NO_ASSERT_H) && (defined(WOLFSSL_HAVE_ASSERT_H) || \
+        (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)) || \
+        (defined(__cplusplus) && (__cplusplus >= 201103L)))
         #include <assert.h>
     #endif
     #if (defined(__cplusplus) && (__cplusplus >= 201703L)) || \
@@ -2272,7 +2329,7 @@ enum Max_ASN {
     MAX_ENCODED_SIG_SZ  = FP_MAX_BITS / 8,
 #elif (defined(WOLFSSL_SP_MATH_ALL) || defined(WOLFSSL_SP_MATH)) && \
     defined(SP_INT_BITS)
-    MAX_ENCODED_SIG_SZ  = (SP_INT_BITS + 7) / 8,
+    MAX_ENCODED_SIG_SZ  = WC_BITS_TO_BYTES(SP_INT_BITS),
 #elif defined(WOLFSSL_HAPROXY)
     MAX_ENCODED_SIG_SZ  = 1024,    /* Supports 8192 bit keys */
 #else
@@ -2343,7 +2400,7 @@ enum Max_ASN {
 
 #define MAX_SIG_SZ MAX_ENCODED_SIG_SZ
 
-#ifdef WOLFSSL_CERT_GEN
+#if defined(WOLFSSL_CERT_GEN) || defined(HAVE_OCSP_RESPONDER)
     /* Used in asn.c MakeSignature for ECC and RSA non-blocking/async */
     enum CertSignState {
         CERTSIGN_STATE_BEGIN,
@@ -2370,6 +2427,8 @@ enum Max_ASN {
         #ifndef NO_RSA
         int encSigSz;
         #endif
+        int digestSz;
+        int typeH; /* Hash algorithm type for encoding */
         int state; /* enum CertSignState */
     } CertSignCtx;
 

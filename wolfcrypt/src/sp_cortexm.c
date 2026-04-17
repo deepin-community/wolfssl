@@ -1,6 +1,6 @@
 /* sp.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -5427,9 +5427,9 @@ static int sp_2048_mod_exp_32(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -5580,9 +5580,9 @@ static int sp_2048_mod_exp_32(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -8544,9 +8544,9 @@ static int sp_2048_mod_exp_64(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -8680,9 +8680,9 @@ static int sp_2048_mod_exp_64(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -8884,6 +8884,7 @@ int sp_RsaPublic_2048(const byte* in, word32 inLen, const mp_int* em,
 }
 
 #ifndef WOLFSSL_RSA_PUBLIC_ONLY
+#if !defined(SP_RSA_PRIVATE_EXP_D) && !defined(RSA_LOW_MEM)
 #ifdef WOLFSSL_SP_SMALL
 /* Conditionally add a and b using the mask m.
  * m is -1 to add and 0 when not.
@@ -9089,6 +9090,7 @@ WC_OMIT_FRAME_POINTER static sp_digit sp_2048_cond_add_32(sp_digit* r,
 }
 
 #endif /* WOLFSSL_SP_SMALL */
+#endif /* !SP_RSA_PRIVATE_EXP_D && !RSA_LOW_MEM */
 /* RSA private key operation.
  *
  * in      Array of bytes representing the number to exponentiate, base.
@@ -9819,9 +9821,9 @@ static int sp_2048_mod_exp_2_64(sp_digit* r, const sp_digit* e, int bits,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -17095,9 +17097,9 @@ static int sp_3072_mod_exp_48(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -17248,9 +17250,9 @@ static int sp_3072_mod_exp_48(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -21148,9 +21150,9 @@ static int sp_3072_mod_exp_96(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -21284,9 +21286,9 @@ static int sp_3072_mod_exp_96(sp_digit* r, const sp_digit* a, const sp_digit* e,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -21488,6 +21490,7 @@ int sp_RsaPublic_3072(const byte* in, word32 inLen, const mp_int* em,
 }
 
 #ifndef WOLFSSL_RSA_PUBLIC_ONLY
+#if !defined(SP_RSA_PRIVATE_EXP_D) && !defined(RSA_LOW_MEM)
 #ifdef WOLFSSL_SP_SMALL
 /* Conditionally add a and b using the mask m.
  * m is -1 to add and 0 when not.
@@ -21749,6 +21752,7 @@ WC_OMIT_FRAME_POINTER static sp_digit sp_3072_cond_add_48(sp_digit* r,
 }
 
 #endif /* WOLFSSL_SP_SMALL */
+#endif /* !SP_RSA_PRIVATE_EXP_D && !RSA_LOW_MEM */
 /* RSA private key operation.
  *
  * in      Array of bytes representing the number to exponentiate, base.
@@ -22671,9 +22675,9 @@ static int sp_3072_mod_exp_2_96(sp_digit* r, const sp_digit* e, int bits,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -29495,9 +29499,9 @@ static int sp_4096_mod_exp_128(sp_digit* r, const sp_digit* a, const sp_digit* e
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -29631,9 +29635,9 @@ static int sp_4096_mod_exp_128(sp_digit* r, const sp_digit* a, const sp_digit* e
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -29835,6 +29839,7 @@ int sp_RsaPublic_4096(const byte* in, word32 inLen, const mp_int* em,
 }
 
 #ifndef WOLFSSL_RSA_PUBLIC_ONLY
+#if !defined(SP_RSA_PRIVATE_EXP_D) && !defined(RSA_LOW_MEM)
 #ifdef WOLFSSL_SP_SMALL
 /* Conditionally add a and b using the mask m.
  * m is -1 to add and 0 when not.
@@ -30152,6 +30157,7 @@ WC_OMIT_FRAME_POINTER static sp_digit sp_4096_cond_add_64(sp_digit* r,
 }
 
 #endif /* WOLFSSL_SP_SMALL */
+#endif /* !SP_RSA_PRIVATE_EXP_D && !RSA_LOW_MEM */
 /* RSA private key operation.
  *
  * in      Array of bytes representing the number to exponentiate, base.
@@ -31266,9 +31272,9 @@ static int sp_4096_mod_exp_2_128(sp_digit* r, const sp_digit* e, int bits,
             c = -c;
             y = (byte)(n << c);
             n = e[i--];
-            y |= (byte)(n >> (64 - c));
+            y |= (byte)(n >> (32 - c));
             n <<= c;
-            c = 64 - c;
+            c = 32 - c;
         }
         else if (c == 0) {
             /* All bits in top word used. */
@@ -35850,22 +35856,23 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_256_mont_sub_8(sp_digit* r,
     register sp_digit* r __asm__ ("r0") = (sp_digit*)r_p;
     register const sp_digit* a __asm__ ("r1") = (const sp_digit*)a_p;
     register const sp_digit* b __asm__ ("r2") = (const sp_digit*)b_p;
+    register const sp_digit* m __asm__ ("r3") = (const sp_digit*)m_p;
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
         "MOV	lr, #0x0\n\t"
         "LDM	%[a], {r5, r6, r7, r8, r9, r10, r11, r12}\n\t"
         "LDM	%[b]!, {r3, r4}\n\t"
-        "SUBS	r5, r5, r3\n\t"
+        "SUBS	r5, r5, %[m]\n\t"
         "SBCS	r6, r6, r4\n\t"
         "LDM	%[b]!, {r3, r4}\n\t"
-        "SBCS	r7, r7, r3\n\t"
+        "SBCS	r7, r7, %[m]\n\t"
         "SBCS	r8, r8, r4\n\t"
         "LDM	%[b]!, {r3, r4}\n\t"
-        "SBCS	r9, r9, r3\n\t"
+        "SBCS	r9, r9, %[m]\n\t"
         "SBCS	r10, r10, r4\n\t"
         "LDM	%[b]!, {r3, r4}\n\t"
-        "SBCS	r11, r11, r3\n\t"
+        "SBCS	r11, r11, %[m]\n\t"
         "SBCS	r12, r12, r4\n\t"
         "SBC	lr, lr, #0x0\n\t"
         "ADDS	r5, r5, lr\n\t"
@@ -35886,16 +35893,11 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_256_mont_sub_8(sp_digit* r,
         "ADCS	r11, r11, lr, LSR #31\n\t"
         "ADC	r12, r12, lr\n\t"
         "STM	%[r], {r5, r6, r7, r8, r9, r10, r11, r12}\n\t"
-        : [r] "+r" (r), [a] "+r" (a), [b] "+r" (b)
+        : [r] "+r" (r), [a] "+r" (a), [b] "+r" (b), [m] "+r" (m)
         :
-        : "memory", "cc", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10",
-            "r11", "r12", "lr"
+        : "memory", "cc", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
+            "r12", "lr"
     );
-#ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    (void)m_p;
-#else
-    (void)m;
-#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 }
 
 /* Divide the number by 2 mod the modulus (prime). (r = a / 2 % m)
@@ -36307,15 +36309,15 @@ static int sp_256_proj_point_add_8_nb(sp_ecc_ctx_t* sp_ctx, sp_point_256* r,
     int err = FP_WOULDBLOCK;
     sp_256_proj_point_add_8_ctx* ctx = (sp_256_proj_point_add_8_ctx*)sp_ctx->data;
 
+    typedef char ctx_size_test[sizeof(sp_256_proj_point_add_8_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
+    (void)sizeof(ctx_size_test);
+
     /* Ensure only the first point is the same as the result. */
     if (q == r) {
         const sp_point_256* a = p;
         p = q;
         q = a;
     }
-
-    typedef char ctx_size_test[sizeof(sp_256_proj_point_add_8_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
-    (void)sizeof(ctx_size_test);
 
     switch (ctx->state) {
     case 0: /* INIT */
@@ -36708,7 +36710,7 @@ static void sp_256_proj_point_dbl_n_8(sp_point_256* p, int i,
     sp_digit* x;
     sp_digit* y;
     sp_digit* z;
-    volatile int n = i;
+    volatile int n = i - 1;
 
     x = p->x;
     y = p->y;
@@ -36720,9 +36722,9 @@ static void sp_256_proj_point_dbl_n_8(sp_point_256* p, int i,
     sp_256_mont_sqr_8(w, z, p256_mod, p256_mp_mod);
     sp_256_mont_sqr_8(w, w, p256_mod, p256_mp_mod);
 #ifndef WOLFSSL_SP_SMALL
-    while (--n > 0)
+    while (n > 0)
 #else
-    while (--n >= 0)
+    while (n >= 0)
 #endif
     {
         /* A = 3*(X^2 - W) */
@@ -36753,6 +36755,7 @@ static void sp_256_proj_point_dbl_n_8(sp_point_256* p, int i,
         /* y = 2*A*(B - X) - Y^4 */
         sp_256_mont_mul_8(y, b, a, p256_mod, p256_mp_mod);
         sp_256_mont_sub_8(y, y, t1, p256_mod);
+        n = n - 1;
     }
 #ifndef WOLFSSL_SP_SMALL
     /* A = 3*(X^2 - W) */
@@ -37003,7 +37006,9 @@ static void sp_256_get_entry_16_8(sp_point_256* r,
     r->y[6] = 0;
     r->y[7] = 0;
     for (i = 1; i < 16; i++) {
-        mask = (sp_digit)0 - (i == idx);
+        sp_digit gte = (sp_digit)((((sp_uint32)i - (sp_uint32)idx) >> 31) - 1);
+        sp_digit lte = (sp_digit)((((sp_uint32)idx - (sp_uint32)i) >> 31) - 1);
+        mask = gte & lte;
         r->x[0] |= mask & table[i].x[0];
         r->x[1] |= mask & table[i].x[1];
         r->x[2] |= mask & table[i].x[2];
@@ -37383,7 +37388,9 @@ static void sp_256_get_entry_256_8(sp_point_256* r,
     r->y[6] = 0;
     r->y[7] = 0;
     for (i = 1; i < 256; i++) {
-        mask = (sp_digit)0 - (i == idx);
+        sp_digit gte = (sp_digit)((((sp_uint32)i - (sp_uint32)idx) >> 31) - 1);
+        sp_digit lte = (sp_digit)((((sp_uint32)idx - (sp_uint32)i) >> 31) - 1);
+        mask = gte & lte;
         r->x[0] |= mask & table[i].x[0];
         r->x[1] |= mask & table[i].x[1];
         r->x[2] |= mask & table[i].x[2];
@@ -45506,63 +45513,7 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_384_mont_tpl_12(sp_digit* r,
     );
 }
 
-#ifdef WOLFSSL_SP_SMALL
-/* Sub b from a into r. (r = a - b)
- *
- * r  A single precision integer.
- * a  A single precision integer.
- * b  A single precision integer.
- */
-#ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-WC_OMIT_FRAME_POINTER static sp_digit sp_384_sub_12(sp_digit* r_p,
-    const sp_digit* a_p, const sp_digit* b_p)
-#else
-WC_OMIT_FRAME_POINTER static sp_digit sp_384_sub_12(sp_digit* r,
-    const sp_digit* a, const sp_digit* b)
-#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
-{
-#ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    register sp_digit* r __asm__ ("r0") = (sp_digit*)r_p;
-    register const sp_digit* a __asm__ ("r1") = (const sp_digit*)a_p;
-    register const sp_digit* b __asm__ ("r2") = (const sp_digit*)b_p;
-#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
-
-    __asm__ __volatile__ (
-        "MOV	r11, #0x0\n\t"
-        "ADD	r12, %[a], #0x30\n\t"
-        "\n"
-#if defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
-    "L_sp_384_sub_12_word:\n\t"
-#else
-    "L_sp_384_sub_12_word_%=:\n\t"
-#endif
-        "RSBS	r11, r11, #0x0\n\t"
-        "LDM	%[a]!, {r3, r4, r5, r6}\n\t"
-        "LDM	%[b]!, {r7, r8, r9, r10}\n\t"
-        "SBCS	r3, r3, r7\n\t"
-        "SBCS	r4, r4, r8\n\t"
-        "SBCS	r5, r5, r9\n\t"
-        "SBCS	r6, r6, r10\n\t"
-        "STM	%[r]!, {r3, r4, r5, r6}\n\t"
-        "SBC	r11, r3, r3\n\t"
-        "CMP	%[a], r12\n\t"
-#if defined(__GNUC__)
-        "BNE	L_sp_384_sub_12_word_%=\n\t"
-#elif defined(__IAR_SYSTEMS_ICC__) && (__VER__ < 9000000)
-        "BNE.N	L_sp_384_sub_12_word\n\t"
-#else
-        "BNE.N	L_sp_384_sub_12_word_%=\n\t"
-#endif
-        "MOV	%[r], r11\n\t"
-        : [r] "+r" (r), [a] "+r" (a), [b] "+r" (b)
-        :
-        : "memory", "cc", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10",
-            "r11", "r12"
-    );
-    return (word32)(size_t)r;
-}
-
-#else
+#ifndef WOLFSSL_SP_SMALL
 /* Sub b from a into r. (r = a - b)
  *
  * r  A single precision integer.
@@ -45613,7 +45564,7 @@ WC_OMIT_FRAME_POINTER static sp_digit sp_384_sub_12(sp_digit* r,
     return (word32)(size_t)r;
 }
 
-#endif /* WOLFSSL_SP_SMALL */
+#endif /* !WOLFSSL_SP_SMALL */
 #ifdef WOLFSSL_SP_SMALL
 /* Conditionally add a and b using the mask m.
  * m is -1 to add and 0 when not.
@@ -45772,7 +45723,7 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_384_mont_sub_12(sp_digit* r,
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
-        "MOV	r3, #0x0\n\t"
+        "MOV	%[m], #0x0\n\t"
         "LDM	%[a]!, {r8, r9, r10, r11}\n\t"
         "LDM	%[b]!, {r4, r5, r6, r7}\n\t"
         "SUBS	r8, r8, r4\n\t"
@@ -45794,47 +45745,47 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_384_mont_sub_12(sp_digit* r,
         "SBCS	r10, r10, r6\n\t"
         "SBCS	r11, r11, r7\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
-        "SBC	r3, r3, #0x0\n\t"
+        "SBC	%[m], %[m], #0x0\n\t"
         "SUB	%[r], %[r], #0x30\n\t"
-        "LSR	r12, r3, #1\n\t"
+        "LSR	r12, %[m], #1\n\t"
         "LDM	%[r], {r8, r9, r10, r11}\n\t"
-        "ADDS	r8, r8, r3\n\t"
+        "ADDS	r8, r8, %[m]\n\t"
         "ADCS	r9, r9, #0x0\n\t"
         "ADCS	r10, r10, #0x0\n\t"
-        "ADCS	r11, r11, r3\n\t"
+        "ADCS	r11, r11, %[m]\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
         "LDM	%[r], {r8, r9, r10, r11}\n\t"
         "ADCS	r8, r8, r12, LSL #1\n\t"
-        "ADCS	r9, r9, r3\n\t"
-        "ADCS	r10, r10, r3\n\t"
-        "ADCS	r11, r11, r3\n\t"
+        "ADCS	r9, r9, %[m]\n\t"
+        "ADCS	r10, r10, %[m]\n\t"
+        "ADCS	r11, r11, %[m]\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
         "LDM	%[r], {r8, r9, r10, r11}\n\t"
-        "ADCS	r8, r8, r3\n\t"
-        "ADCS	r9, r9, r3\n\t"
-        "ADCS	r10, r10, r3\n\t"
-        "ADCS	r11, r11, r3\n\t"
+        "ADCS	r8, r8, %[m]\n\t"
+        "ADCS	r9, r9, %[m]\n\t"
+        "ADCS	r10, r10, %[m]\n\t"
+        "ADCS	r11, r11, %[m]\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
-        "ADC	r3, r3, #0x0\n\t"
+        "ADC	%[m], %[m], #0x0\n\t"
         "SUB	%[r], %[r], #0x30\n\t"
-        "LSR	r12, r3, #1\n\t"
+        "LSR	r12, %[m], #1\n\t"
         "LDM	%[r], {r8, r9, r10, r11}\n\t"
-        "ADDS	r8, r8, r3\n\t"
+        "ADDS	r8, r8, %[m]\n\t"
         "ADCS	r9, r9, #0x0\n\t"
         "ADCS	r10, r10, #0x0\n\t"
-        "ADCS	r11, r11, r3\n\t"
+        "ADCS	r11, r11, %[m]\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
         "LDM	%[r], {r8, r9, r10, r11}\n\t"
         "ADCS	r8, r8, r12, LSL #1\n\t"
-        "ADCS	r9, r9, r3\n\t"
-        "ADCS	r10, r10, r3\n\t"
-        "ADCS	r11, r11, r3\n\t"
+        "ADCS	r9, r9, %[m]\n\t"
+        "ADCS	r10, r10, %[m]\n\t"
+        "ADCS	r11, r11, %[m]\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
         "LDM	%[r], {r8, r9, r10, r11}\n\t"
-        "ADCS	r8, r8, r3\n\t"
-        "ADCS	r9, r9, r3\n\t"
-        "ADCS	r10, r10, r3\n\t"
-        "ADC	r11, r11, r3\n\t"
+        "ADCS	r8, r8, %[m]\n\t"
+        "ADCS	r9, r9, %[m]\n\t"
+        "ADCS	r10, r10, %[m]\n\t"
+        "ADC	r11, r11, %[m]\n\t"
         "STM	%[r]!, {r8, r9, r10, r11}\n\t"
         : [r] "+r" (r), [a] "+r" (a), [b] "+r" (b), [m] "+r" (m)
         :
@@ -46273,15 +46224,15 @@ static int sp_384_proj_point_add_12_nb(sp_ecc_ctx_t* sp_ctx, sp_point_384* r,
     int err = FP_WOULDBLOCK;
     sp_384_proj_point_add_12_ctx* ctx = (sp_384_proj_point_add_12_ctx*)sp_ctx->data;
 
+    typedef char ctx_size_test[sizeof(sp_384_proj_point_add_12_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
+    (void)sizeof(ctx_size_test);
+
     /* Ensure only the first point is the same as the result. */
     if (q == r) {
         const sp_point_384* a = p;
         p = q;
         q = a;
     }
-
-    typedef char ctx_size_test[sizeof(sp_384_proj_point_add_12_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
-    (void)sizeof(ctx_size_test);
 
     switch (ctx->state) {
     case 0: /* INIT */
@@ -46698,7 +46649,7 @@ static void sp_384_proj_point_dbl_n_12(sp_point_384* p, int i,
     sp_digit* x;
     sp_digit* y;
     sp_digit* z;
-    volatile int n = i;
+    volatile int n = i - 1;
 
     x = p->x;
     y = p->y;
@@ -46710,9 +46661,9 @@ static void sp_384_proj_point_dbl_n_12(sp_point_384* p, int i,
     sp_384_mont_sqr_12(w, z, p384_mod, p384_mp_mod);
     sp_384_mont_sqr_12(w, w, p384_mod, p384_mp_mod);
 #ifndef WOLFSSL_SP_SMALL
-    while (--n > 0)
+    while (n > 0)
 #else
-    while (--n >= 0)
+    while (n >= 0)
 #endif
     {
         /* A = 3*(X^2 - W) */
@@ -46743,6 +46694,7 @@ static void sp_384_proj_point_dbl_n_12(sp_point_384* p, int i,
         /* y = 2*A*(B - X) - Y^4 */
         sp_384_mont_mul_12(y, b, a, p384_mod, p384_mp_mod);
         sp_384_mont_sub_12(y, y, t1, p384_mod);
+        n = n - 1;
     }
 #ifndef WOLFSSL_SP_SMALL
     /* A = 3*(X^2 - W) */
@@ -47001,7 +46953,9 @@ static void sp_384_get_entry_16_12(sp_point_384* r,
     r->y[10] = 0;
     r->y[11] = 0;
     for (i = 1; i < 16; i++) {
-        mask = (sp_digit)0 - (i == idx);
+        sp_digit gte = (sp_digit)((((sp_uint32)i - (sp_uint32)idx) >> 31) - 1);
+        sp_digit lte = (sp_digit)((((sp_uint32)idx - (sp_uint32)i) >> 31) - 1);
+        mask = gte & lte;
         r->x[0] |= mask & table[i].x[0];
         r->x[1] |= mask & table[i].x[1];
         r->x[2] |= mask & table[i].x[2];
@@ -47397,7 +47351,9 @@ static void sp_384_get_entry_256_12(sp_point_384* r,
     r->y[10] = 0;
     r->y[11] = 0;
     for (i = 1; i < 256; i++) {
-        mask = (sp_digit)0 - (i == idx);
+        sp_digit gte = (sp_digit)((((sp_uint32)i - (sp_uint32)idx) >> 31) - 1);
+        sp_digit lte = (sp_digit)((((sp_uint32)idx - (sp_uint32)i) >> 31) - 1);
+        mask = gte & lte;
         r->x[0] |= mask & table[i].x[0];
         r->x[1] |= mask & table[i].x[1];
         r->x[2] |= mask & table[i].x[2];
@@ -57536,10 +57492,11 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_521_mont_sub_17(sp_digit* r,
     register sp_digit* r __asm__ ("r0") = (sp_digit*)r_p;
     register const sp_digit* a __asm__ ("r1") = (const sp_digit*)a_p;
     register const sp_digit* b __asm__ ("r2") = (const sp_digit*)b_p;
+    register const sp_digit* m __asm__ ("r3") = (const sp_digit*)m_p;
 #endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 
     __asm__ __volatile__ (
-        "MOV	r3, #0x0\n\t"
+        "MOV	%[m], #0x0\n\t"
         "LDM	%[a]!, {r8, r9, r10, r11}\n\t"
         "LDM	%[b]!, {r4, r5, r6, r7}\n\t"
         "SUBS	r8, r8, r4\n\t"
@@ -57572,13 +57529,13 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_521_mont_sub_17(sp_digit* r,
         "LDM	%[b]!, {r4}\n\t"
         "SBCS	r8, r8, r4\n\t"
         "MOV	r12, #0x1ff\n\t"
-        "ASR	r3, r8, #9\n\t"
+        "ASR	%[m], r8, #9\n\t"
         "AND	r8, r8, r12\n\t"
-        "neg	r3, r3\n\t"
+        "neg	%[m], %[m]\n\t"
         "STM	%[r]!, {r8}\n\t"
         "SUB	%[r], %[r], #0x44\n\t"
         "LDM	%[r], {r4, r5, r6, r7, r8, r9, r10, r11}\n\t"
-        "SUBS	r4, r4, r3\n\t"
+        "SUBS	r4, r4, %[m]\n\t"
         "SBCS	r5, r5, #0x0\n\t"
         "SBCS	r6, r6, #0x0\n\t"
         "SBCS	r7, r7, #0x0\n\t"
@@ -57600,16 +57557,11 @@ WC_OMIT_FRAME_POINTER SP_NOINLINE static void sp_521_mont_sub_17(sp_digit* r,
         "LDM	%[r], {r4}\n\t"
         "SBCS	r4, r4, #0x0\n\t"
         "STM	%[r]!, {r4}\n\t"
-        : [r] "+r" (r), [a] "+r" (a), [b] "+r" (b)
+        : [r] "+r" (r), [a] "+r" (a), [b] "+r" (b), [m] "+r" (m)
         :
         : "memory", "cc", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
-            "r3", "r12"
+            "r12"
     );
-#ifndef WOLFSSL_NO_VAR_ASSIGN_REG
-    (void)m_p;
-#else
-    (void)m;
-#endif /* !WOLFSSL_NO_VAR_ASSIGN_REG */
 }
 
 #ifndef WOLFSSL_NO_VAR_ASSIGN_REG
@@ -58063,15 +58015,15 @@ static int sp_521_proj_point_add_17_nb(sp_ecc_ctx_t* sp_ctx, sp_point_521* r,
     int err = FP_WOULDBLOCK;
     sp_521_proj_point_add_17_ctx* ctx = (sp_521_proj_point_add_17_ctx*)sp_ctx->data;
 
+    typedef char ctx_size_test[sizeof(sp_521_proj_point_add_17_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
+    (void)sizeof(ctx_size_test);
+
     /* Ensure only the first point is the same as the result. */
     if (q == r) {
         const sp_point_521* a = p;
         p = q;
         q = a;
     }
-
-    typedef char ctx_size_test[sizeof(sp_521_proj_point_add_17_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
-    (void)sizeof(ctx_size_test);
 
     switch (ctx->state) {
     case 0: /* INIT */
@@ -58483,7 +58435,17 @@ static int sp_521_ecc_mulmod_fast_17(sp_point_521* r, const sp_point_521* g, con
         }
         y = k[0] & 0x1;
         sp_521_proj_point_dbl_17(rt, rt, tmp);
-        sp_521_proj_point_add_17(rt, rt, &t[y], tmp);
+    #ifndef WC_NO_CACHE_RESISTANT
+        if (ct) {
+            sp_521_get_point_16_17(p, t, y);
+            p->infinity = !y;
+            sp_521_proj_point_add_17(rt, rt, p, tmp);
+        }
+        else
+    #endif
+        {
+            sp_521_proj_point_add_17(rt, rt, &t[y], tmp);
+        }
 
         if (map != 0) {
             sp_521_map_17(r, rt, tmp);
@@ -58522,7 +58484,7 @@ static void sp_521_proj_point_dbl_n_17(sp_point_521* p, int i,
     sp_digit* x;
     sp_digit* y;
     sp_digit* z;
-    volatile int n = i;
+    volatile int n = i - 1;
 
     x = p->x;
     y = p->y;
@@ -58534,9 +58496,9 @@ static void sp_521_proj_point_dbl_n_17(sp_point_521* p, int i,
     sp_521_mont_sqr_17(w, z, p521_mod, p521_mp_mod);
     sp_521_mont_sqr_17(w, w, p521_mod, p521_mp_mod);
 #ifndef WOLFSSL_SP_SMALL
-    while (--n > 0)
+    while (n > 0)
 #else
-    while (--n >= 0)
+    while (n >= 0)
 #endif
     {
         /* A = 3*(X^2 - W) */
@@ -58567,6 +58529,7 @@ static void sp_521_proj_point_dbl_n_17(sp_point_521* p, int i,
         /* y = 2*A*(B - X) - Y^4 */
         sp_521_mont_mul_17(y, b, a, p521_mod, p521_mp_mod);
         sp_521_mont_sub_17(y, y, t1, p521_mod);
+        n = n - 1;
     }
 #ifndef WOLFSSL_SP_SMALL
     /* A = 3*(X^2 - W) */
@@ -58835,7 +58798,9 @@ static void sp_521_get_entry_16_17(sp_point_521* r,
     r->y[15] = 0;
     r->y[16] = 0;
     for (i = 1; i < 16; i++) {
-        mask = (sp_digit)0 - (i == idx);
+        sp_digit gte = (sp_digit)((((sp_uint32)i - (sp_uint32)idx) >> 31) - 1);
+        sp_digit lte = (sp_digit)((((sp_uint32)idx - (sp_uint32)i) >> 31) - 1);
+        mask = gte & lte;
         r->x[0] |= mask & table[i].x[0];
         r->x[1] |= mask & table[i].x[1];
         r->x[2] |= mask & table[i].x[2];
@@ -59251,7 +59216,9 @@ static void sp_521_get_entry_256_17(sp_point_521* r,
     r->y[15] = 0;
     r->y[16] = 0;
     for (i = 1; i < 256; i++) {
-        mask = (sp_digit)0 - (i == idx);
+        sp_digit gte = (sp_digit)((((sp_uint32)i - (sp_uint32)idx) >> 31) - 1);
+        sp_digit lte = (sp_digit)((((sp_uint32)idx - (sp_uint32)i) >> 31) - 1);
+        mask = gte & lte;
         r->x[0] |= mask & table[i].x[0];
         r->x[1] |= mask & table[i].x[1];
         r->x[2] |= mask & table[i].x[2];
@@ -72601,15 +72568,15 @@ static int sp_1024_proj_point_add_32_nb(sp_ecc_ctx_t* sp_ctx, sp_point_1024* r,
     int err = FP_WOULDBLOCK;
     sp_1024_proj_point_add_32_ctx* ctx = (sp_1024_proj_point_add_32_ctx*)sp_ctx->data;
 
+    typedef char ctx_size_test[sizeof(sp_1024_proj_point_add_32_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
+    (void)sizeof(ctx_size_test);
+
     /* Ensure only the first point is the same as the result. */
     if (q == r) {
         const sp_point_1024* a = p;
         p = q;
         q = a;
     }
-
-    typedef char ctx_size_test[sizeof(sp_1024_proj_point_add_32_ctx) >= sizeof(*sp_ctx) ? -1 : 1];
-    (void)sizeof(ctx_size_test);
 
     switch (ctx->state) {
     case 0: /* INIT */
@@ -72907,7 +72874,7 @@ static void sp_1024_proj_point_dbl_n_32(sp_point_1024* p, int i,
     sp_digit* x;
     sp_digit* y;
     sp_digit* z;
-    volatile int n = i;
+    volatile int n = i - 1;
 
     x = p->x;
     y = p->y;
@@ -72919,9 +72886,9 @@ static void sp_1024_proj_point_dbl_n_32(sp_point_1024* p, int i,
     sp_1024_mont_sqr_32(w, z, p1024_mod, p1024_mp_mod);
     sp_1024_mont_sqr_32(w, w, p1024_mod, p1024_mp_mod);
 #ifndef WOLFSSL_SP_SMALL
-    while (--n > 0)
+    while (n > 0)
 #else
-    while (--n >= 0)
+    while (n >= 0)
 #endif
     {
         /* A = 3*(X^2 - W) */
@@ -72952,6 +72919,7 @@ static void sp_1024_proj_point_dbl_n_32(sp_point_1024* p, int i,
         /* y = 2*A*(B - X) - Y^4 */
         sp_1024_mont_mul_32(y, b, a, p1024_mod, p1024_mp_mod);
         sp_1024_mont_sub_32(y, y, t1, p1024_mod);
+        n = n - 1;
     }
 #ifndef WOLFSSL_SP_SMALL
     /* A = 3*(X^2 - W) */

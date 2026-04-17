@@ -1,6 +1,6 @@
 /* pkcs12.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -509,6 +509,7 @@ exit_gsd:
     if (ret != 0) {
         if (mac) {
             XFREE(mac->digest, pkcs12->heap, DYNAMIC_TYPE_DIGEST);
+            XFREE(mac->salt, pkcs12->heap, DYNAMIC_TYPE_SALT);
             XFREE(mac, pkcs12->heap, DYNAMIC_TYPE_PKCS);
         }
     }
@@ -636,7 +637,13 @@ static int wc_PKCS12_verify(WC_PKCS12* pkcs12, byte* data, word32 dataSz,
     }
 #endif
 
-    return XMEMCMP(digest, mac->digest, mac->digestSz);
+    if (ConstantCompare(digest, mac->digest, (int)mac->digestSz) != 0) {
+        ForceZero(digest, sizeof(digest));
+        return MAC_CMP_FAILED_E;
+    }
+
+    ForceZero(digest, sizeof(digest));
+    return 0;
 }
 
 int wc_PKCS12_verify_ex(WC_PKCS12* pkcs12, const byte* psw, word32 pswSz)
@@ -1134,6 +1141,7 @@ static byte* PKCS12_ConcatenateContent(WC_PKCS12* pkcs12,byte* mergedData,
 {
     byte* oldContent;
     word32 oldContentSz;
+    word32 newSz;
 
     (void)pkcs12;
 
@@ -1145,14 +1153,19 @@ static byte* PKCS12_ConcatenateContent(WC_PKCS12* pkcs12,byte* mergedData,
     oldContentSz = *mergedSz;
 
     /* re-allocate new buffer to fit appended data */
-    mergedData = (byte*)XMALLOC(oldContentSz + inSz, pkcs12->heap,
+    if (WC_SAFE_SUM_WORD32(oldContentSz, inSz, newSz) == 0) {
+        XFREE(oldContent, pkcs12->heap, DYNAMIC_TYPE_PKCS);
+        return NULL;
+    }
+
+    mergedData = (byte*)XMALLOC(newSz, pkcs12->heap,
             DYNAMIC_TYPE_PKCS);
     if (mergedData != NULL) {
         if (oldContent != NULL) {
             XMEMCPY(mergedData, oldContent, oldContentSz);
         }
         XMEMCPY(mergedData + oldContentSz, in, inSz);
-        *mergedSz += inSz;
+        *mergedSz = newSz;
     }
     XFREE(oldContent, pkcs12->heap, DYNAMIC_TYPE_PKCS);
 

@@ -1,6 +1,6 @@
 /* wolfcrypt/test/test.h
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -292,6 +292,9 @@ extern WOLFSSL_TEST_SUBROUTINE wc_test_ret_t scrypt_test(void);
     #if !defined(WOLFSSL_LMS_VERIFY_ONLY)
     extern WOLFSSL_TEST_SUBROUTINE wc_test_ret_t  lms_test(void);
     #endif
+#endif
+#if defined(WOLFSSL_HAVE_SLHDSA)
+    extern WOLFSSL_TEST_SUBROUTINE wc_test_ret_t  slhdsa_test(void);
 #endif
 #ifdef WOLFCRYPT_HAVE_ECCSI
     extern WOLFSSL_TEST_SUBROUTINE wc_test_ret_t  eccsi_test(void);

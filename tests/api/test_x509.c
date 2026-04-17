@@ -1,6 +1,6 @@
 /* test_x509.c
  *
- * Copyright (C) 2006-2025 wolfSSL Inc.
+ * Copyright (C) 2006-2026 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -35,6 +35,9 @@
 #include <wolfssl/openssl/ssl.h>
 #include <wolfssl/openssl/x509.h>
 #include <wolfssl/openssl/x509v3.h>
+
+#include <wolfssl/internal.h>
+#include <wolfssl/wolfcrypt/asn.h>
 
 #if defined(OPENSSL_ALL) && \
     defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES)
@@ -147,4 +150,189 @@ int test_x509_rfc2818_verification_callback(void)
     wolfSSL_CTX_free(ctx_c);
 #endif
     return EXPECT_RESULT();
+}
+
+/* Basic unit coverage for GetCAByAKID.
+ *
+ * These tests construct a minimal WOLFSSL_CERT_MANAGER and Signer objects in
+ * memory and then call GetCAByAKID directly, verifying that:
+ *  - a NULL or incomplete input returns NULL,
+ *  - a matching issuer/serial pair returns the expected Signer, and
+ *  - a non-matching pair returns NULL.
+ *
+ * These tests are intended to check the behaviour of the lookup logic itself;
+ * they do not exercise certificate parsing or real CA loading.
+ */
+int test_x509_GetCAByAKID(void)
+{
+    EXPECT_DECLS;
+#ifdef WOLFSSL_AKID_NAME
+    WOLFSSL_CERT_MANAGER cm;
+    Signer signerA;
+    Signer signerB;
+    Signer* found;
+    byte issuerBuf[]  = { 0x01, 0x02, 0x03, 0x04 };
+    byte serialBuf[]  = { 0x0a, 0x0b, 0x0c, 0x0d };
+    byte wrongSerial[] = { 0x07, 0x07, 0x07, 0x07 };
+    byte issuerHash[SIGNER_DIGEST_SIZE];
+    byte serialHash[SIGNER_DIGEST_SIZE];
+    word32 row;
+
+    XMEMSET(&cm, 0, sizeof(cm));
+    XMEMSET(&signerA, 0, sizeof(signerA));
+    XMEMSET(&signerB, 0, sizeof(signerB));
+    XMEMSET(issuerHash, 0, sizeof(issuerHash));
+    XMEMSET(serialHash, 0, sizeof(serialHash));
+
+    /* Initialize CA mutex so GetCAByAKID can lock/unlock it. */
+    ExpectIntEQ(wc_InitMutex(&cm.caLock), 0);
+
+    /* Place both signers into the same CA table bucket. */
+    row = 0;
+    cm.caTable[row] = &signerA;
+    signerA.next = &signerB;
+    signerB.next = NULL;
+
+    /* Pre-compute the expected name and serial hashes using the same helper
+     * that GetCAByAKID uses internally. */
+    ExpectIntEQ(CalcHashId(issuerBuf, sizeof(issuerBuf), issuerHash), 0);
+    ExpectIntEQ(CalcHashId(serialBuf, sizeof(serialBuf), serialHash), 0);
+
+    /* Configure signerA as the matching signer. */
+    XMEMCPY(signerA.issuerNameHash, issuerHash, SIGNER_DIGEST_SIZE);
+    XMEMCPY(signerA.serialHash,     serialHash, SIGNER_DIGEST_SIZE);
+
+    /* Configure signerB with different hashes so it should not match. */
+    XMEMSET(signerB.issuerNameHash, 0x11, SIGNER_DIGEST_SIZE);
+    XMEMSET(signerB.serialHash,     0x22, SIGNER_DIGEST_SIZE);
+
+    /* 1) NULL manager should yield NULL. */
+    found = GetCAByAKID(NULL, issuerBuf, (word32)sizeof(issuerBuf),
+                        serialBuf, (word32)sizeof(serialBuf));
+    ExpectNull(found);
+
+    /* 2) NULL issuer should yield NULL. */
+    found = GetCAByAKID(&cm, NULL, (word32)sizeof(issuerBuf),
+                        serialBuf, (word32)sizeof(serialBuf));
+    ExpectNull(found);
+
+    /* 3) NULL serial should yield NULL. */
+    found = GetCAByAKID(&cm, issuerBuf, (word32)sizeof(issuerBuf),
+                        NULL, (word32)sizeof(serialBuf));
+    ExpectNull(found);
+
+    /* 4) Zero-length issuer/serial should yield NULL. */
+    found = GetCAByAKID(&cm, issuerBuf, 0, serialBuf, (word32)sizeof(serialBuf));
+    ExpectNull(found);
+    found = GetCAByAKID(&cm, issuerBuf, (word32)sizeof(issuerBuf),
+                        serialBuf, 0);
+    ExpectNull(found);
+
+    /* 5) Non-matching serial should yield NULL. */
+    found = GetCAByAKID(&cm, issuerBuf, (word32)sizeof(issuerBuf),
+                        wrongSerial, (word32)sizeof(wrongSerial));
+    ExpectNull(found);
+
+    /* 6) Matching issuer/serial should return signerA. */
+    found = GetCAByAKID(&cm, issuerBuf, (word32)sizeof(issuerBuf),
+                        serialBuf, (word32)sizeof(serialBuf));
+    ExpectPtrEq(found, &signerA);
+
+    wc_FreeMutex(&cm.caLock);
+
+#endif /* WOLFSSL_AKID_NAME */
+    return EXPECT_RESULT();
+}
+
+int test_x509_set_serialNumber(void)
+{
+#if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL)
+    EXPECT_DECLS;
+    WOLFSSL_X509*         x509 = NULL;
+    WOLFSSL_ASN1_INTEGER* s    = NULL;
+#if defined(OPENSSL_EXTRA_X509_SMALL)
+    WOLFSSL_ASN1_INTEGER  asnInt;
+#endif
+
+    ExpectNotNull(x509 = wolfSSL_X509_new());
+#if defined(OPENSSL_EXTRA_X509_SMALL)
+    XMEMSET(&asnInt, 0, sizeof(asnInt));
+    asnInt.data = asnInt.intData;
+    asnInt.isDynamic = 0;
+    asnInt.dataMax = (unsigned int)sizeof(asnInt.intData);
+    s = &asnInt;
+#else
+    ExpectNotNull(s = wolfSSL_ASN1_INTEGER_new());
+#endif
+
+    /* --- invalid inputs that must be rejected --- */
+
+    /* NULL x509 */
+    ExpectIntEQ(X509_set_serialNumber(NULL, s), WOLFSSL_FAILURE);
+    /* NULL s */
+    ExpectIntEQ(X509_set_serialNumber(x509, NULL), WOLFSSL_FAILURE);
+
+    if (s != NULL) {
+        /* length == 0: too short */
+        s->length  = 0;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 0;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* length == 1: still too short */
+        s->length  = 1;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 0;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* length == 2: still rejected - the guard requires length >= 3 */
+        s->length  = 2;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 0;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* wrong type byte */
+        s->length  = 4;
+        s->data[0] = 0x00; /* not ASN_INTEGER */
+        s->data[1] = 2;    /* length field */
+        s->data[2] = 0x01;
+        s->data[3] = 0x02;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* mismatched length byte (data[1] != s->length - 2) */
+        s->length  = 4;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 99; /* claims 99 bytes but s->length - 2 == 2 */
+        s->data[2] = 0x01;
+        s->data[3] = 0x02;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_FAILURE);
+
+        /* --- valid two-byte serial number --- */
+        s->length  = 4;
+        s->data[0] = ASN_INTEGER;
+        s->data[1] = 2;
+        s->data[2] = 0x01;
+        s->data[3] = 0x02;
+        ExpectIntEQ(wolfSSL_X509_set_serialNumber(x509, s),
+                    WOLFSSL_SUCCESS);
+        ExpectIntEQ(x509->serialSz, 2);
+        /* NUL terminator must be placed right after the copied data */
+        ExpectIntEQ(x509->serial[x509->serialSz], 0);
+        ExpectIntEQ(x509->serial[0], 0x01);
+        ExpectIntEQ(x509->serial[1], 0x02);
+    }
+
+#if !defined(OPENSSL_EXTRA_X509_SMALL)
+    wolfSSL_ASN1_INTEGER_free(s);
+#endif
+    wolfSSL_X509_free(x509);
+    return EXPECT_RESULT();
+#else
+    return TEST_SKIPPED;
+#endif /* OPENSSL_EXTRA || OPENSSL_EXTRA_X509_SMALL */
 }
